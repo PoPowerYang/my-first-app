@@ -51,3 +51,51 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+import { StyleSheet } from 'react-native';
+
+export const Shadows = StyleSheet.create({
+  light: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mediumDownward: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 10,
+  }
+});
+
+export const CommonStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f4f4f8',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    ...Shadows.light,
+  },
+  floatingBox: {
+    backgroundColor: 'white',
+    padding: 20,
+    ...Shadows.mediumDownward,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    marginHorizontal: 20,
+  }
+});

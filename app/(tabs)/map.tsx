@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import React, { useEffect, useState, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Geojson } from 'react-native-maps';
+import { CommonStyles } from '../../constants/theme';
 
 // Import our states geojson
 import statesData from '../../assets/us-states.json';
@@ -98,9 +99,9 @@ export default function MapScreen() {
   // If we haven't resolved a location yet, render a loading view (or an error message if permission was denied)
   if (!location) {
     return (
-      <View style={styles.center}>
+      <View style={CommonStyles.center}>
         {errorMsg ? (
-          <Text style={styles.errorText}>{errorMsg}</Text>
+          <Text style={CommonStyles.errorText}>{errorMsg}</Text>
         ) : (
           <>
             <ActivityIndicator size="large" />
@@ -119,7 +120,7 @@ export default function MapScreen() {
 
   // Render the primary map interface, initializing the view around the user's location while zoomed out
   return (
-    <View style={styles.container}>
+    <View style={[CommonStyles.container, { flexDirection: 'column' }]}>
       <MapView
         style={styles.map}
         initialRegion={{
@@ -138,7 +139,7 @@ export default function MapScreen() {
         />
       </MapView>
 
-      <View style={styles.infoBox}>
+      <View style={[CommonStyles.floatingBox, { paddingBottom: 30 }]}>
         <Text style={styles.infoText}>{text}</Text>
       </View>
     </View>
@@ -147,15 +148,6 @@ export default function MapScreen() {
 
 // Style definitions for our layout components
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   map: {
     flex: 1,
     width: '100%',
@@ -163,22 +155,6 @@ const styles = StyleSheet.create({
   text: {
     marginTop: 10,
     fontSize: 16,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    marginHorizontal: 20,
-  },
-  infoBox: {
-    backgroundColor: 'white',
-    padding: 20,
-    paddingBottom: 30, // Extra padding for the bottom edge
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 10,
   },
   infoText: {
     fontSize: 16,
