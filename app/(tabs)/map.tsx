@@ -11,21 +11,7 @@ type Coordinate = {
   longitude: number;
 };
 
-/**
- * Helper function to convert HSL color values to a hex string with an appended alpha channel.
- * We use this to smoothly distribute colors across the hue wheel so that every state 
- * gets a distinct but aesthetically pleasing color with 50% opacity (#80 in hex).
- */
-const hslToHexAlpha = (h: number, s: number, l: number) => {
-  l /= 100;
-  const a = s * Math.min(l, 1 - l) / 100;
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}80`;
-};
+import { fourColorAlgorithm, sequentialHueAlgorithm } from '../../scripts/mapColoring';
 
 export default function MapScreen() {
   // State to hold the user's current GPS location
@@ -74,17 +60,15 @@ export default function MapScreen() {
    * We use useMemo to ensure this heavy calculation only happens once when the component mounts.
    */
   const statesGeoJsonElements = useMemo(() => {
-    const numStates = statesData.features.length;
-    
-    // Generate an array of distinct colors exactly equal to the number of states, evenly spaced along the color wheel
-    const colors = Array.from({ length: numStates }, (_, i) => {
-      const hue = (i * 360) / numStates;
-      return hslToHexAlpha(hue, 70, 50);
-    });
+    // Generate the color map based on our preferred algorithm.
+    // To change algorithms, swap `fourColorAlgorithm` for `sequentialHueAlgorithm`
+    const colorMap = fourColorAlgorithm(statesData.features);
 
     // @ts-ignore - The imported json typing might be broad, cast it to feature array
     return statesData.features.map((feature: any, index: number) => {
-      const uniqueColor = colors[index];
+      const stateName = feature.properties?.NAME;
+      const uniqueColor = stateName ? colorMap[stateName] : 'rgba(0,0,0,0.1)';
+      
       const featureCollection = {
         type: 'FeatureCollection',
         features: [feature],
