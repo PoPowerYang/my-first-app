@@ -11,30 +11,37 @@ type Coordinate = {
   longitude: number;
 };
 
-// Function to generate a deterministic color based on a string (e.g., state name)
-const stringToColor = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  let color = '#';
-  for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xFF;
-    color += ('00' + value.toString(16)).substr(-2);
-  }
-  return color + '80'; // Add 80 for 50% opacity
+/**
+ * Helper function to convert HSL color values to a hex string with an appended alpha channel.
+ * We use this to smoothly distribute colors across the hue wheel so that every state 
+ * gets a distinct but aesthetically pleasing color with 50% opacity (#80 in hex).
+ */
+const hslToHexAlpha = (h: number, s: number, l: number) => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}80`;
 };
 
 export default function MapScreen() {
+  // State to hold the user's current GPS location
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  // State to hold any error messages generated during the location request process
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // State to store the location subscription so we can cleanly unsubscribe when the component unmounts
   const [subscription, setSubscription] = useState<Location.LocationSubscription | null>(null);
 
+  // Effect hook to initialize and manage location tracking when the component mounts
   useEffect(() => {
     let sub: Location.LocationSubscription;
 
     (async () => {
+      // Request user permission to access location foreground services
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
@@ -62,12 +69,22 @@ export default function MapScreen() {
     };
   }, []);
 
-  // Pre-process GeoJSON to extract individual states for separate coloring
+  /**
+   * Pre-processes our USA GeoJSON data to extract each state into its own individual Geojson component.
+   * We use useMemo to ensure this heavy calculation only happens once when the component mounts.
+   */
   const statesGeoJsonElements = useMemo(() => {
+    const numStates = statesData.features.length;
+    
+    // Generate an array of distinct colors exactly equal to the number of states, evenly spaced along the color wheel
+    const colors = Array.from({ length: numStates }, (_, i) => {
+      const hue = (i * 360) / numStates;
+      return hslToHexAlpha(hue, 70, 50);
+    });
+
     // @ts-ignore - The imported json typing might be broad, cast it to feature array
     return statesData.features.map((feature: any, index: number) => {
-      const stateName = feature.properties?.NAME || `state-${index}`;
-      const uniqueColor = stringToColor(stateName);
+      const uniqueColor = colors[index];
       const featureCollection = {
         type: 'FeatureCollection',
         features: [feature],
@@ -86,6 +103,7 @@ export default function MapScreen() {
     });
   }, []);
 
+  // Determine the display text depending on whether tracking was successful, errored, or is still waiting
   let text = 'Waiting..';
   if (errorMsg) {
     text = errorMsg;
@@ -93,6 +111,7 @@ export default function MapScreen() {
     text = `Lat: ${location.coords.latitude.toFixed(4)} Lon: ${location.coords.longitude.toFixed(4)}`;
   }
 
+  // If we haven't resolved a location yet, render a loading view (or an error message if permission was denied)
   if (!location) {
     return (
       <View style={styles.center}>
@@ -108,11 +127,13 @@ export default function MapScreen() {
     );
   }
 
+  // Parse out exactly what coordinate object react-native-maps expects for markers and map center
   const currentCoord: Coordinate = {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
   };
 
+  // Render the primary map interface, initializing the view around the user's location while zoomed out
   return (
     <View style={styles.container}>
       <MapView
@@ -140,6 +161,7 @@ export default function MapScreen() {
   );
 }
 
+// Style definitions for our layout components
 const styles = StyleSheet.create({
   container: {
     flex: 1,

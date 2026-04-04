@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -10,32 +10,13 @@ export default function HomeScreen() {
       <Text style={styles.header}>Dashboard</Text>
 
       {/* Box 1: Link to the Map Component */}
-      <TouchableOpacity 
-        style={[styles.box, styles.mapBoxGateway]} 
+      <TouchableOpacity
+        style={[styles.box, styles.mapBoxGateway]}
         onPress={() => router.push('/map')}
         activeOpacity={0.8}
       >
         <Text style={styles.mapBoxTitle}>Explore Live Map</Text>
         <Text style={styles.mapBoxSubtitle}>View real-time location details  ➔</Text>
-      </TouchableOpacity>
-
-      {/* Box 2: Stats */}
-      <TouchableOpacity style={styles.box} activeOpacity={0.8}>
-        <Text style={styles.boxTitle}>Statistics</Text>
-        <Text style={styles.boxText}>Distance: 0.0 mi</Text>
-        <Text style={styles.boxText}>Duration: 00:00:00</Text>
-      </TouchableOpacity>
-
-      {/* Box 3: Recent Activity */}
-      <TouchableOpacity style={styles.box} activeOpacity={0.8}>
-        <Text style={styles.boxTitle}>Recent Activity</Text>
-        <Text style={styles.boxText}>No recent activity found.</Text>
-      </TouchableOpacity>
-      
-      {/* Box 4: Settings Placeholder */}
-      <TouchableOpacity style={styles.box} activeOpacity={0.8}>
-        <Text style={styles.boxTitle}>Settings</Text>
-        <Text style={styles.boxText}>Configure your preferences.</Text>
       </TouchableOpacity>
     </ScrollView>
   );
