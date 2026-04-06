@@ -1,8 +1,14 @@
-# Welcome to your Expo app 👋
+# US States Travel Map 🗺️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native (Expo) app that tracks which US states you've visited by extracting GPS data from your photos.
 
-## Get started
+## Features
+
+- **Interactive Map** — View all 50 US states colored with a four-color algorithm
+- **Photo Geotagging** — Pick a photo from your library; the app reads its EXIF GPS data and marks the state as visited
+- **Persistent Storage** — Visited states are saved locally via AsyncStorage
+
+## Getting Started
 
 1. Install dependencies
 
@@ -16,35 +22,24 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Project Structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+app/              → Screens & navigation (Expo Router file-based routing)
+  _layout.tsx     → Root Stack navigator with theme support
+  index.tsx       → Dashboard / home screen
+  map.tsx         → Map screen with GeoJSON state boundaries
+assets/           → Static assets (images, GeoJSON data)
+constants/        → Theme colors, fonts, shadows, and shared styles
+hooks/            → Custom React hooks (color scheme, visited states)
+utils/            → Runtime utilities (GPS extraction, map coloring)
+scripts/          → Dev scripts (project reset)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Tech Stack
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Expo](https://expo.dev) (SDK 54) with [Expo Router](https://docs.expo.dev/router/introduction/)
+- [react-native-maps](https://github.com/react-native-maps/react-native-maps) for map rendering
+- [expo-image-picker](https://docs.expo.dev/versions/latest/sdk/imagepicker/) for photo selection
+- [expo-location](https://docs.expo.dev/versions/latest/sdk/location/) for reverse geocoding
+- [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) for persistence

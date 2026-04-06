@@ -2,12 +2,12 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Geojson, type Region } from 'react-native-maps';
-import { CommonStyles } from '../../constants/theme';
 
-import statesData from '../../assets/us-states.json';
-import { useVisitedStates } from '../../hooks/use-visited-states';
-import { extractGpsFromExif, reverseGeocodeToState } from '../../scripts/imageGeoExtractor';
-import { fourColorAlgorithm } from '../../scripts/mapColoring';
+import statesData from '@/assets/us-states.json';
+import { CommonStyles } from '@/constants/theme';
+import { useVisitedStates } from '@/hooks/use-visited-states';
+import { extractGpsFromExif, reverseGeocodeToState } from '@/utils/image-geo-extractor';
+import { fourColorAlgorithm } from '@/utils/map-coloring';
 
 const INITIAL_REGION: Region = {
   latitude: 39.8283,
@@ -23,16 +23,13 @@ export default function MapScreen() {
 
   const statesGeoJsonElements = useMemo(() => {
     const fullColorMap = fourColorAlgorithm(statesData.features);
-    console.log('[Map] Visited states:', [...visitedStates]);
 
-    // @ts-ignore
     return statesData.features.map((feature: any, index: number) => {
       const stateName = feature.properties?.NAME;
       const isVisited = stateName ? visitedStates.has(stateName) : false;
       const fillColor = isVisited
         ? fullColorMap[stateName]
         : 'rgba(0, 0, 0, 0)';
-      console.log(`[Map] ${stateName}: visited=${isVisited}, color=${fillColor}`);
 
       const featureCollection = {
         type: 'FeatureCollection',
@@ -42,7 +39,7 @@ export default function MapScreen() {
       return (
         <Geojson
           key={feature.id || index}
-          // @ts-ignore
+          // @ts-expect-error — same GeoJSON typing mismatch
           geojson={featureCollection}
           fillColor={fillColor}
           strokeColor="rgb(0, 0, 0)"
@@ -64,10 +61,8 @@ export default function MapScreen() {
 
       setProcessing(true);
       const asset = result.assets[0];
-      console.log('[Geo] EXIF data:', JSON.stringify(asset.exif, null, 2));
 
       const gps = extractGpsFromExif(asset.exif);
-      console.log('[Geo] Extracted GPS:', gps);
 
       if (!gps) {
         Alert.alert('No Location Data', 'This image does not contain GPS information.');
@@ -76,7 +71,6 @@ export default function MapScreen() {
       }
 
       const stateName = await reverseGeocodeToState(gps);
-      console.log('[Geo] Reverse geocoded state:', stateName);
 
       if (!stateName) {
         Alert.alert('Not in the US', 'This image was not taken in a US state.');
@@ -87,7 +81,6 @@ export default function MapScreen() {
       if (visitedStates.has(stateName)) {
         Alert.alert('Already Visited', `${stateName} is already on your map!`);
       } else {
-        console.log('[Geo] Adding state to visited set:', JSON.stringify(stateName));
         addState(stateName);
         Alert.alert('State Added!', `${stateName} has been added to your visited states.`);
       }
@@ -122,14 +115,12 @@ export default function MapScreen() {
         {statesGeoJsonElements}
       </MapView>
 
-      {/* Visited state count badge */}
       <View style={styles.badge}>
         <Text style={styles.badgeText}>
           {visitedStates.size} / {statesData.features.length} states
         </Text>
       </View>
 
-      {/* Clear button */}
       {visitedStates.size > 0 && (
         <TouchableOpacity
           style={styles.clearButton}
@@ -144,7 +135,6 @@ export default function MapScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Floating action button for image upload */}
       <TouchableOpacity
         style={[styles.fab, processing && styles.fabDisabled]}
         onPress={handlePickImage}

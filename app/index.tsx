@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { CommonStyles } from '../../constants/theme';
+
+import { CommonStyles } from '@/constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -10,7 +11,6 @@ export default function HomeScreen() {
     <ScrollView style={CommonStyles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>Dashboard</Text>
 
-      {/* Box 1: Link to the Map Component */}
       <TouchableOpacity
         style={[CommonStyles.card, styles.mapBoxGateway]}
         onPress={() => router.push('/map')}
@@ -47,18 +47,7 @@ const styles = StyleSheet.create({
   },
   mapBoxSubtitle: {
     fontSize: 15,
-    color: '#rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },
-  boxTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  boxText: {
-    fontSize: 15,
-    color: '#666',
-    marginBottom: 4,
-  }
 });
