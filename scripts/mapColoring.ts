@@ -84,3 +84,29 @@ export const sequentialHueAlgorithm: MapColoringAlgorithm = (features) => {
 
   return colorMap;
 };
+
+const UNVISITED_COLOR = 'rgba(200, 200, 200, 0.3)';
+
+/**
+ * Visited-states coloring algorithm.
+ * Colors only the states in the provided `visitedStates` set using the four-color scheme.
+ * Non-visited states are rendered gray/transparent.
+ */
+export const visitedStatesAlgorithm = (
+  features: any[],
+  visitedStates: Set<string>,
+): Record<string, string> => {
+  const fullColorMap = fourColorAlgorithm(features);
+
+  const colorMap: Record<string, string> = {};
+  features.forEach((feature) => {
+    const stateName = feature.properties?.NAME;
+    if (stateName) {
+      colorMap[stateName] = visitedStates.has(stateName)
+        ? fullColorMap[stateName]
+        : UNVISITED_COLOR;
+    }
+  });
+
+  return colorMap;
+};
