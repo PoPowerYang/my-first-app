@@ -1,41 +1,51 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Geojson } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Geojson, type Region } from 'react-native-maps';
 import { CommonStyles } from '../../constants/theme';
 
 import statesData from '../../assets/us-states.json';
-import { visitedStatesAlgorithm } from '../../scripts/mapColoring';
-import { extractGpsFromExif, reverseGeocodeToState } from '../../scripts/imageGeoExtractor';
 import { useVisitedStates } from '../../hooks/use-visited-states';
+import { extractGpsFromExif, reverseGeocodeToState } from '../../scripts/imageGeoExtractor';
+import { fourColorAlgorithm } from '../../scripts/mapColoring';
+
+const INITIAL_REGION: Region = {
+  latitude: 39.8283,
+  longitude: -98.5795,
+  latitudeDelta: 50.0,
+  longitudeDelta: 50.0,
+};
 
 export default function MapScreen() {
   const { visitedStates, isLoading, addState, clearStates } = useVisitedStates();
   const [processing, setProcessing] = useState(false);
+  const regionRef = useRef<Region>(INITIAL_REGION);
 
   const statesGeoJsonElements = useMemo(() => {
-    const colorMap = visitedStatesAlgorithm(statesData.features, visitedStates);
+    const fullColorMap = fourColorAlgorithm(statesData.features);
+    console.log('[Map] Visited states:', [...visitedStates]);
 
     // @ts-ignore
     return statesData.features.map((feature: any, index: number) => {
       const stateName = feature.properties?.NAME;
-      const fillColor = stateName ? colorMap[stateName] : 'rgba(0,0,0,0.1)';
       const isVisited = stateName ? visitedStates.has(stateName) : false;
+      const fillColor = isVisited
+        ? fullColorMap[stateName]
+        : 'rgba(0, 0, 0, 0)';
+      console.log(`[Map] ${stateName}: visited=${isVisited}, color=${fillColor}`);
 
       const featureCollection = {
         type: 'FeatureCollection',
         features: [feature],
       };
 
-      // Key includes visited status to force remount when color changes,
-      // since react-native-maps Geojson doesn't update fillColor on prop change.
       return (
         <Geojson
-          key={`${feature.id || index}-${isVisited}`}
+          key={feature.id || index}
           // @ts-ignore
           geojson={featureCollection}
           fillColor={fillColor}
-          strokeColor="rgba(0, 0, 0, 0.5)"
+          strokeColor="rgb(0, 0, 0)"
           strokeWidth={1}
         />
       );
@@ -77,6 +87,7 @@ export default function MapScreen() {
       if (visitedStates.has(stateName)) {
         Alert.alert('Already Visited', `${stateName} is already on your map!`);
       } else {
+        console.log('[Geo] Adding state to visited set:', JSON.stringify(stateName));
         addState(stateName);
         Alert.alert('State Added!', `${stateName} has been added to your visited states.`);
       }
@@ -98,13 +109,14 @@ export default function MapScreen() {
 
   return (
     <View style={[CommonStyles.container, { flexDirection: 'column' }]}>
+      {/* Key forces MapView to fully remount when visited states change,
+          since react-native-maps Geojson doesn't update fillColor on prop changes. */}
       <MapView
+        key={`map-${visitedStates.size}`}
         style={styles.map}
-        initialRegion={{
-          latitude: 39.8283,
-          longitude: -98.5795,
-          latitudeDelta: 50.0,
-          longitudeDelta: 50.0,
+        initialRegion={regionRef.current}
+        onRegionChangeComplete={(region) => {
+          regionRef.current = region;
         }}
       >
         {statesGeoJsonElements}

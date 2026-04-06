@@ -30,10 +30,23 @@ export function extractGpsFromExif(
   return { latitude, longitude };
 }
 
+const STATE_ABBREV_TO_NAME: Record<string, string> = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+  CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
+  HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa',
+  KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri',
+  MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+  NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio',
+  OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
+  SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont',
+  VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+  DC: 'District of Columbia', PR: 'Puerto Rico',
+};
+
 /**
  * Reverse geocodes GPS coordinates to a US state name.
- * Returns the state name (e.g., "California") or null if the location
- * is not in the US or reverse geocoding fails.
+ * Handles both full names and abbreviations returned by the geocoder.
  */
 export async function reverseGeocodeToState(coords: {
   latitude: number;
@@ -44,12 +57,15 @@ export async function reverseGeocodeToState(coords: {
     if (results.length === 0) return null;
 
     const place = results[0];
-    // expo-location returns the state/province in the `region` field
     if (place.isoCountryCode !== 'US' && place.country !== 'United States') {
       return null;
     }
 
-    return place.region ?? null;
+    const region = place.region ?? null;
+    if (!region) return null;
+
+    // Convert abbreviation to full name if needed
+    return STATE_ABBREV_TO_NAME[region] ?? region;
   } catch (err) {
     console.warn('Reverse geocoding failed:', err);
     return null;
