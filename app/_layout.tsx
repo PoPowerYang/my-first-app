@@ -16,6 +16,10 @@ export default function RootLayout() {
           name="map"
           options={{ headerShown: true, title: 'Map' }}
         />
+        <Stack.Screen
+          name="timeline"
+          options={{ headerShown: true, title: 'Timeline' }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

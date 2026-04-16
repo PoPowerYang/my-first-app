@@ -85,7 +85,8 @@ export const sequentialHueAlgorithm: MapColoringAlgorithm = (features) => {
   return colorMap;
 };
 
-const UNVISITED_COLOR = 'rgba(200, 200, 200, 0.3)';
+const UNVISITED_COLOR = 'rgba(180, 180, 190, 0.15)';
+const UNVISITED_STROKE = 'rgba(150, 150, 160, 0.4)';
 
 /**
  * Visited-states coloring algorithm.
@@ -95,18 +96,19 @@ const UNVISITED_COLOR = 'rgba(200, 200, 200, 0.3)';
 export const visitedStatesAlgorithm = (
   features: any[],
   visitedStates: Set<string>,
-): Record<string, string> => {
+): { colors: Record<string, string>; strokes: Record<string, string> } => {
   const fullColorMap = fourColorAlgorithm(features);
 
-  const colorMap: Record<string, string> = {};
+  const colors: Record<string, string> = {};
+  const strokes: Record<string, string> = {};
   features.forEach((feature) => {
     const stateName = feature.properties?.NAME;
     if (stateName) {
-      colorMap[stateName] = visitedStates.has(stateName)
-        ? fullColorMap[stateName]
-        : UNVISITED_COLOR;
+      const isVisited = visitedStates.has(stateName);
+      colors[stateName] = isVisited ? fullColorMap[stateName] : UNVISITED_COLOR;
+      strokes[stateName] = isVisited ? 'rgba(0, 0, 0, 0.6)' : UNVISITED_STROKE;
     }
   });
 
-  return colorMap;
+  return { colors, strokes };
 };
