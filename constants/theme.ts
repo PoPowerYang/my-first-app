@@ -95,6 +95,29 @@ export const RegionColors: Record<string, string> = {
   West: DesignTokens.secondaryDim,
 };
 
+export const REGION_COLOR_PALETTE = [
+  DesignTokens.secondary,
+  DesignTokens.tertiary,
+  DesignTokens.primary,
+  DesignTokens.secondaryDim,
+  '#f59e0b',
+  '#10b981',
+  '#8b5cf6',
+  '#ec4899',
+];
+
+export function getRegionColorByIndex(index: number): string {
+  return REGION_COLOR_PALETTE[index % REGION_COLOR_PALETTE.length];
+}
+
+export function buildRegionColorMap(regionNames: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  regionNames.forEach((name, i) => {
+    map[name] = REGION_COLOR_PALETTE[i % REGION_COLOR_PALETTE.length];
+  });
+  return map;
+}
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

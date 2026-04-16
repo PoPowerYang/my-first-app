@@ -1,12 +1,7 @@
-import type { Region } from 'react-native-maps';
 
-export interface USRegion {
-  name: string;
-  shortName: string;
-  icon: string;
-  states: string[];
-  mapRegion: Region;
-}
+import type { CountryRegion } from '@/constants/countries';
+
+export type USRegion = CountryRegion;
 
 export const US_REGIONS: USRegion[] = [
   {
@@ -82,8 +77,9 @@ export const ATLANTIC_COAST_STATES = [
   'North Carolina', 'South Carolina', 'Georgia', 'Florida',
 ];
 
-export function getRegionForState(stateName: string): USRegion | undefined {
-  return US_REGIONS.find((r) => r.states.includes(stateName));
+export function getRegionForState(stateName: string, regions?: CountryRegion[]): CountryRegion | undefined {
+  const regionList = regions ?? US_REGIONS;
+  return regionList.find((r) => r.states.includes(stateName));
 }
 
 export function getRegionProgress(

@@ -10,62 +10,68 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getRegionForState } from '@/constants/regions';
+import { getRegionForSubdivision } from '@/constants/countries';
 import { DesignTokens } from '@/constants/theme';
+import { useCountry } from '@/contexts/country-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 
-const REGION_BORDER_COLORS: Record<string, string> = {
-  West: '#f59e0b',
-  Northeast: DesignTokens.tertiaryContainer,
-  South: '#10b981',
-  Midwest: DesignTokens.primaryContainer,
-};
+interface RegionTheme {
+  border: string;
+  badgeBg: string;
+  badgeText: string;
+}
 
-const REGION_BADGE_BG: Record<string, string> = {
-  West: '#fef3c7',
-  Northeast: DesignTokens.onTertiary,
-  South: '#dcfce7',
-  Midwest: DesignTokens.surfaceContainerLow,
-};
-
-const REGION_BADGE_TEXT: Record<string, string> = {
-  West: '#92400e',
-  Northeast: DesignTokens.tertiaryDim,
-  South: '#065f46',
-  Midwest: DesignTokens.primaryDim,
-};
-
-const REGION_ICONS: Record<string, string> = {
-  West: 'image-filter-hdr',
-  Northeast: 'office-building',
-  South: 'music-note',
-  Midwest: 'barley',
-};
+const REGION_THEMES: RegionTheme[] = [
+  { border: '#f59e0b', badgeBg: '#fef3c7', badgeText: '#92400e' },
+  { border: DesignTokens.tertiaryContainer, badgeBg: DesignTokens.onTertiary, badgeText: DesignTokens.tertiaryDim },
+  { border: '#10b981', badgeBg: '#dcfce7', badgeText: '#065f46' },
+  { border: DesignTokens.primaryContainer, badgeBg: DesignTokens.surfaceContainerLow, badgeText: DesignTokens.primaryDim },
+  { border: '#8b5cf6', badgeBg: '#ede9fe', badgeText: '#5b21b6' },
+  { border: '#ec4899', badgeBg: '#fce7f3', badgeText: '#9d174d' },
+  { border: '#06b6d4', badgeBg: '#cffafe', badgeText: '#155e75' },
+  { border: '#f97316', badgeBg: '#fff7ed', badgeText: '#9a3412' },
+];
 
 type FilterOption = 'All States' | string;
 
 export default function TimelineScreen() {
   const router = useRouter();
+  const { country } = useCountry();
   const { entries } = useVisitedStatesContext();
-  const sortedEntries = [...entries].reverse();
-  const [activeFilter, setActiveFilter] = useState<FilterOption>('All States');
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      const dateA = a.photoDate ?? a.addedAt;
+      const dateB = b.photoDate ?? b.addedAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  }, [entries]);
+  const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
+
+  const regions = country.regions;
+
+  // Build region index map for theming
+  const regionIndexMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    regions.forEach((r, i) => { map[r.name] = i; });
+    return map;
+  }, [regions]);
 
   const filters = useMemo(() => {
     const regionSet = new Set<string>();
     for (const entry of entries) {
-      const region = getRegionForState(entry.stateName);
+      const region = getRegionForSubdivision(entry.stateName, regions);
       if (region) regionSet.add(region.name);
     }
-    return ['All States', ...Array.from(regionSet)];
-  }, [entries]);
+    return ['All', ...Array.from(regionSet)];
+  }, [entries, regions]);
 
   const filteredEntries = useMemo(() => {
-    if (activeFilter === 'All States') return sortedEntries;
+    if (activeFilter === 'All') return sortedEntries;
     return sortedEntries.filter((entry) => {
-      const region = getRegionForState(entry.stateName);
+      const region = getRegionForSubdivision(entry.stateName, regions);
       return region?.name === activeFilter;
     });
-  }, [sortedEntries, activeFilter]);
+  }, [sortedEntries, activeFilter, regions]);
 
   if (sortedEntries.length === 0) {
     return (
@@ -148,18 +154,16 @@ export default function TimelineScreen() {
           <View style={styles.timelineTrack} />
 
           {filteredEntries.map((entry, index) => {
-            const region = getRegionForState(entry.stateName);
+            const region = getRegionForSubdivision(entry.stateName, regions);
             const regionName = region?.name ?? 'Unknown';
-            const borderColor =
-              REGION_BORDER_COLORS[regionName] ?? DesignTokens.outlineVariant;
-            const badgeBg =
-              REGION_BADGE_BG[regionName] ?? DesignTokens.surfaceContainerLow;
-            const badgeText =
-              REGION_BADGE_TEXT[regionName] ?? DesignTokens.onSurfaceVariant;
-            const regionIcon =
-              REGION_ICONS[regionName] ?? 'map-marker';
-            const addedDate = new Date(entry.addedAt);
-            const isLegacy = addedDate.getTime() === 0;
+            const rIdx = regionIndexMap[regionName] ?? 0;
+            const theme = REGION_THEMES[rIdx % REGION_THEMES.length];
+            const borderColor = theme.border;
+            const badgeBg = theme.badgeBg;
+            const badgeText = theme.badgeText;
+            const regionIcon = region?.icon ?? 'map-marker';
+            const displayDate = new Date(entry.photoDate ?? entry.addedAt);
+            const isLegacy = !entry.photoDate && displayDate.getTime() === 0;
             const isFirst = index === 0;
 
             return (
@@ -178,7 +182,7 @@ export default function TimelineScreen() {
                   <Text style={styles.dateText}>
                     {isLegacy
                       ? ''
-                      : addedDate.toLocaleDateString('en-US', {
+                      : displayDate.toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
@@ -220,19 +224,6 @@ export default function TimelineScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/map')}
-        activeOpacity={0.8}
-      >
-        <MaterialCommunityIcons
-          name="map-marker-plus"
-          size={24}
-          color={DesignTokens.onPrimary}
-        />
-      </TouchableOpacity>
-
       {/* Bottom Nav */}
       <BottomNav router={router} />
     </SafeAreaView>
@@ -271,6 +262,17 @@ function BottomNav({ router }: { router: ReturnType<typeof useRouter> }) {
           color={DesignTokens.primary}
         />
         <Text style={[styles.navLabel, styles.navLabelActive]}>Journal</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => router.push('/settings')}
+      >
+        <MaterialCommunityIcons
+          name="cog-outline"
+          size={24}
+          color={DesignTokens.outline}
+        />
+        <Text style={styles.navLabel}>Settings</Text>
       </TouchableOpacity>
     </View>
   );
@@ -474,24 +476,6 @@ const styles = StyleSheet.create({
     color: DesignTokens.onPrimary,
     letterSpacing: 0.5,
   },
-  /* FAB */
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 110,
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: DesignTokens.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 40,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
   /* Bottom Nav */
   bottomNav: {
     flexDirection: 'row',
@@ -512,7 +496,7 @@ const styles = StyleSheet.create({
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },

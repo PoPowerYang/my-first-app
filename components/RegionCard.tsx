@@ -1,18 +1,19 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import type { USRegion } from '@/constants/regions';
-import { DesignTokens, RegionColors } from '@/constants/theme';
+import type { CountryRegion } from '@/constants/countries';
+import { DesignTokens, RegionColors, getRegionColorByIndex } from '@/constants/theme';
 
 interface RegionCardProps {
-  region: USRegion;
+  region: CountryRegion;
   visited: number;
   total: number;
   onPress: () => void;
+  colorIndex?: number;
 }
 
-export function RegionCard({ region, visited, total, onPress }: RegionCardProps) {
-  const color = RegionColors[region.name] ?? DesignTokens.outline;
+export function RegionCard({ region, visited, total, onPress, colorIndex }: RegionCardProps) {
+  const color = RegionColors[region.name] ?? (colorIndex != null ? getRegionColorByIndex(colorIndex) : DesignTokens.outline);
   const progress = total > 0 ? visited / total : 0;
 
   return (

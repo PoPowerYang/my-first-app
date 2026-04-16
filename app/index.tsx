@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -15,20 +14,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MilestoneCard } from '@/components/MilestoneCard';
 import { ProgressRing } from '@/components/ProgressRing';
 import { RegionCard } from '@/components/RegionCard';
-import { US_REGIONS, getRegionProgress } from '@/constants/regions';
+import { getRegionProgress } from '@/constants/countries';
 import { DesignTokens } from '@/constants/theme';
+import { useCountry } from '@/contexts/country-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 import { useMilestones } from '@/hooks/use-milestones';
 
-import statesData from '@/assets/us-states.json';
-
 export default function HomeScreen() {
   const router = useRouter();
+  const { country } = useCountry();
   const { visitedStates, entries } = useVisitedStatesContext();
   const milestones = useMilestones(visitedStates);
-  const totalStates = statesData.features.length;
+  const totalStates = country.subdivisions.length;
   const recentEntries = [...entries].reverse().slice(0, 5);
-  const regionsVisited = US_REGIONS.filter((r) =>
+  const regionsVisited = country.regions.filter((r) =>
     r.states.some((s) => visitedStates.has(s)),
   ).length;
   const percentage =
@@ -44,6 +43,7 @@ export default function HomeScreen() {
     { icon: 'home' as const, label: 'Archive', route: undefined, active: true },
     { icon: 'map-outline' as const, label: 'Explorer', route: '/map' as const, active: false },
     { icon: 'timeline-text-outline' as const, label: 'Journal', route: '/timeline' as const, active: false },
+    { icon: 'cog-outline' as const, label: 'Settings', route: '/settings' as const, active: false },
   ];
 
   return (
@@ -61,8 +61,8 @@ export default function HomeScreen() {
               <Text style={styles.heroTitle}>Your Voyage Continues</Text>
               <Text style={styles.heroSubtitle}>
                 {percentage > 0
-                  ? `Over ${percentage >= 20 ? 'a fifth' : `${percentage}%`} of the union explored.`
-                  : 'Start exploring the United States.'}
+                  ? `${percentage}% of ${country.name} explored.`
+                  : `Start exploring ${country.name}.`}
               </Text>
               <View style={styles.pillRow}>
                 {statPills.map((pill) => (
@@ -101,7 +101,7 @@ export default function HomeScreen() {
             Regional Progress
           </Text>
           <View style={styles.regionGrid}>
-            {US_REGIONS.map((region) => {
+            {country.regions.map((region, idx) => {
               const { visited, total } = getRegionProgress(region, visitedStates);
               return (
                 <RegionCard
@@ -109,6 +109,7 @@ export default function HomeScreen() {
                   region={region}
                   visited={visited}
                   total={total}
+                  colorIndex={idx}
                   onPress={() =>
                     router.push({ pathname: '/map', params: { region: region.name } })
                   }
@@ -185,26 +186,6 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/map')}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[DesignTokens.primary, DesignTokens.primaryContainer]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <MaterialCommunityIcons
-            name="map-marker-plus"
-            size={28}
-            color={DesignTokens.onPrimary}
-          />
-        </LinearGradient>
-      </TouchableOpacity>
 
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomNav}>
@@ -416,26 +397,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  /* FAB */
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 110,
-    zIndex: 40,
-    borderRadius: 16,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   /* Bottom Nav */
   bottomNav: {
     flexDirection: 'row',
@@ -456,7 +417,7 @@ const styles = StyleSheet.create({
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },

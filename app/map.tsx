@@ -26,19 +26,13 @@ import statesData from '@/assets/us-states.json';
 import { ConfettiOverlay } from '@/components/ConfettiOverlay';
 import { MapLegend } from '@/components/MapLegend';
 import { MilestoneUnlockModal } from '@/components/MilestoneUnlockModal';
-import { US_REGIONS, getRegionProgress } from '@/constants/regions';
-import { DesignTokens, RegionColors } from '@/constants/theme';
+import { getRegionForSubdivision, getRegionProgress } from '@/constants/countries';
+import { DesignTokens, buildRegionColorMap } from '@/constants/theme';
+import { useCountry } from '@/contexts/country-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 import { getNewlyUnlockedMilestones, useMilestones } from '@/hooks/use-milestones';
-import { extractGpsFromExif, reverseGeocodeToState } from '@/utils/image-geo-extractor';
+import { extractDateFromExif, extractGpsFromExif, reverseGeocodeToState } from '@/utils/image-geo-extractor';
 import { fourColorAlgorithm } from '@/utils/map-coloring';
-
-const INITIAL_REGION: Region = {
-  latitude: 39.8283,
-  longitude: -98.5795,
-  latitudeDelta: 50.0,
-  longitudeDelta: 50.0,
-};
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MAP_HEIGHT = SCREEN_HEIGHT * 0.25;
@@ -46,8 +40,24 @@ const MAP_HEIGHT = SCREEN_HEIGHT * 0.25;
 const UNVISITED_FILL = 'rgba(180, 180, 190, 0.15)';
 const UNVISITED_STROKE = 'rgba(150, 150, 160, 0.4)';
 
+function showWarning(title: string, message: string) {
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  Alert.alert(title, message);
+}
+
+function getRegionInfo(
+  stateName: string,
+  regions: ReturnType<typeof useCountry>['country']['regions'],
+  regionColors: Record<string, string>,
+): { color: string; name: string | undefined } {
+  const regionName = getRegionForSubdivision(stateName, regions)?.name;
+  const color = regionName ? (regionColors[regionName] ?? DesignTokens.primary) : DesignTokens.primary;
+  return { color, name: regionName };
+}
+
 export default function MapScreen() {
   const router = useRouter();
+  const { country } = useCountry();
   const { visitedStates, entries, isLoading, addState, clearStates } = useVisitedStatesContext();
   const [processing, setProcessing] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -57,11 +67,14 @@ export default function MapScreen() {
     icon: string;
     description: string;
   } | null>(null);
-  const regionRef = useRef<Region>(INITIAL_REGION);
+  const regionRef = useRef<Region>(country.initialMapRegion);
   const mapRef = useRef<MapView>(null);
   const lastExplorerTapRef = useRef<number>(0);
   const params = useLocalSearchParams<{ region?: string }>();
   const milestones = useMilestones(visitedStates);
+
+  const regions = country.regions;
+  const regionColors = useMemo(() => buildRegionColorMap(regions.map((r) => r.name)), [regions]);
 
   // Badge count animation
   const badgeScale = useSharedValue(1);
@@ -72,16 +85,25 @@ export default function MapScreen() {
   // Navigate to region if specified in params
   useEffect(() => {
     if (params.region && mapRef.current) {
-      const region = US_REGIONS.find((r) => r.name === params.region);
+      const region = regions.find((r) => r.name === params.region);
       if (region) {
         setTimeout(() => {
           mapRef.current?.animateToRegion(region.mapRegion, 800);
         }, 500);
       }
     }
-  }, [params.region]);
+  }, [params.region, regions]);
+
+  // Re-center map when country changes
+  useEffect(() => {
+    if (mapRef.current) {
+      regionRef.current = country.initialMapRegion;
+      mapRef.current.animateToRegion(country.initialMapRegion, 600);
+    }
+  }, [country.code]);
 
   const statesGeoJsonElements = useMemo(() => {
+    if (!country.hasGeoJson) return null;
     const fullColorMap = fourColorAlgorithm(statesData.features);
 
     return statesData.features.map((feature: any, index: number) => {
@@ -123,26 +145,28 @@ export default function MapScreen() {
       const asset = result.assets[0];
 
       const gps = extractGpsFromExif(asset.exif);
+      const photoDate = extractDateFromExif(asset.exif);
 
       if (!gps) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert('No Location Data', 'This image does not contain GPS information.');
-        setProcessing(false);
+        showWarning('No Location Data', 'This image does not contain GPS information.');
         return;
       }
 
-      const stateName = await reverseGeocodeToState(gps);
+      const stateName = await reverseGeocodeToState(gps, country.code);
 
       if (!stateName) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert('Not in the US', 'This image was not taken in a US state.');
-        setProcessing(false);
+        showWarning('Wrong Country', `This image was not taken in ${country.name}.`);
+        return;
+      }
+
+      // Verify the subdivision belongs to this country
+      if (!country.subdivisions.includes(stateName)) {
+        showWarning('Unknown Location', `Could not match "${stateName}" to a ${country.subdivisionLabel.toLowerCase()} in ${country.name}.`);
         return;
       }
 
       if (visitedStates.has(stateName)) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert('Already Visited', `${stateName} is already on your map!`);
+        showWarning('Already Visited', `${stateName} is already on your map!`);
       } else {
         // Check which milestones will unlock
         const prevCount = visitedStates.size;
@@ -150,7 +174,7 @@ export default function MapScreen() {
         const newVisited = new Set(visitedStates);
         newVisited.add(stateName);
 
-        addState(stateName);
+        addState(stateName, photoDate ?? undefined);
 
         // Celebration! 🎉
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -186,7 +210,7 @@ export default function MapScreen() {
           }
         }
 
-        Alert.alert('State Added!', `${stateName} has been added to your visited states.`);
+        Alert.alert(`${country.subdivisionLabel} Added!`, `${stateName} has been added to your visited ${country.subdivisionLabelPlural.toLowerCase()}.`);
       }
     } catch (err) {
       console.warn('Image pick error:', err);
@@ -197,14 +221,14 @@ export default function MapScreen() {
   }, [visitedStates, addState, milestones, badgeScale]);
 
   const handleRegionZoom = useCallback((regionName: string) => {
-    const region = US_REGIONS.find((r) => r.name === regionName);
+    const region = regions.find((r) => r.name === regionName);
     if (region && mapRef.current) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       mapRef.current.animateToRegion(region.mapRegion, 600);
     }
   }, []);
 
-  const totalStates = statesData.features.length;
+  const totalStates = country.subdivisions.length;
   const percentage = totalStates > 0 ? Math.round((visitedStates.size / totalStates) * 100) : 0;
 
   const recentEntries = [...(entries ?? [])].reverse().slice(0, 4);
@@ -213,6 +237,7 @@ export default function MapScreen() {
     { icon: 'home-outline' as const, label: 'Archive', route: '/' as const, active: false },
     { icon: 'map' as const, label: 'Explorer', route: undefined, active: true },
     { icon: 'timeline-text-outline' as const, label: 'Journal', route: '/timeline' as const, active: false },
+    { icon: 'cog-outline' as const, label: 'Settings', route: '/settings' as const, active: false },
   ];
 
   if (isLoading) {
@@ -236,11 +261,11 @@ export default function MapScreen() {
         <View style={styles.headerSection}>
           <View>
             <Text style={styles.headerLabel}>Explorer Mode</Text>
-            <Text style={styles.headerTitle}>The United States</Text>
+            <Text style={styles.headerTitle}>{country.flag} {country.name}</Text>
           </View>
           <View style={styles.headerControls}>
             <View style={styles.regionChips}>
-              {US_REGIONS.map((r) => (
+              {regions.map((r) => (
                 <TouchableOpacity
                   key={r.shortName}
                   style={styles.regionChip}
@@ -255,7 +280,7 @@ export default function MapScreen() {
               <TouchableOpacity
                 style={styles.clearAllButton}
                 onPress={() =>
-                  Alert.alert('Clear All', 'Remove all visited states?', [
+                  Alert.alert('Clear All', `Remove all visited ${country.subdivisionLabelPlural.toLowerCase()}?`, [
                     { text: 'Cancel', style: 'cancel' },
                     { text: 'Clear', style: 'destructive', onPress: clearStates },
                   ])
@@ -272,12 +297,13 @@ export default function MapScreen() {
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
-            key={`map-${visitedStates.size}`}
+            key={`map-${country.code}-${visitedStates.size}`}
             style={styles.map}
-            initialRegion={regionRef.current}
+            initialRegion={country.initialMapRegion}
             onRegionChangeComplete={(region) => {
               regionRef.current = region;
             }}
+            onPress={() => handlePickImage()}
           >
             {statesGeoJsonElements}
           </MapView>
@@ -288,7 +314,7 @@ export default function MapScreen() {
               <Text style={styles.statsBadgeCount}>{visitedStates.size}</Text>
             </View>
             <View>
-              <Text style={styles.statsBadgeLabel}>States Visited</Text>
+              <Text style={styles.statsBadgeLabel}>{country.subdivisionLabelPlural} Visited</Text>
               <Text style={styles.statsBadgeValue}>
                 {visitedStates.size} / {totalStates}{' '}
                 <Text style={styles.statsBadgePercent}>({percentage}%)</Text>
@@ -319,8 +345,7 @@ export default function MapScreen() {
                 {recentEntries.map((entry, i) => {
                   const addedDate = new Date(entry.addedAt);
                   const isLegacy = addedDate.getTime() === 0;
-                  const regionName = US_REGIONS.find((r) => r.states.includes(entry.stateName))?.name;
-                  const regionColor = regionName ? RegionColors[regionName] : DesignTokens.primary;
+                  const { color: regionColor, name: regionName } = getRegionInfo(entry.stateName, regions, regionColors);
                   return (
                     <View key={entry.stateName + i} style={styles.expeditionCard}>
                       <View style={[styles.expeditionIcon, { backgroundColor: regionColor + '20' }]}>
@@ -354,10 +379,10 @@ export default function MapScreen() {
           <View style={styles.regionalSection}>
             <Text style={styles.sectionTitle}>Regional Focus</Text>
             <View style={styles.regionalBars}>
-              {US_REGIONS.map((region) => {
+              {regions.map((region) => {
                 const { visited, total } = getRegionProgress(region, visitedStates);
                 const pct = total > 0 ? Math.round((visited / total) * 100) : 0;
-                const regionColor = RegionColors[region.name] ?? DesignTokens.primary;
+                const regionColor = regionColors[region.name] ?? DesignTokens.primary;
                 return (
                   <View key={region.name} style={styles.regionalItem}>
                     <View style={styles.regionalLabelRow}>
@@ -389,20 +414,6 @@ export default function MapScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={[styles.fab, processing && styles.fabDisabled]}
-        onPress={handlePickImage}
-        disabled={processing}
-        activeOpacity={0.8}
-      >
-        {processing ? (
-          <ActivityIndicator color={DesignTokens.onPrimary} />
-        ) : (
-          <MaterialCommunityIcons name="camera" size={28} color={DesignTokens.onPrimary} />
-        )}
-      </TouchableOpacity>
-
       {/* Confetti */}
       <ConfettiOverlay
         visible={showConfetti}
@@ -429,7 +440,7 @@ export default function MapScreen() {
                 ? () => {
                     const now = Date.now();
                     if (now - lastExplorerTapRef.current < 400) {
-                      mapRef.current?.animateToRegion(INITIAL_REGION, 600);
+                      mapRef.current?.animateToRegion(country.initialMapRegion, 600);
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     }
                     lastExplorerTapRef.current = now;
@@ -752,27 +763,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DesignTokens.onPrimary,
   },
-  /* FAB */
-  fab: {
-    position: 'absolute',
-    bottom: 110,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: DesignTokens.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    zIndex: 40,
-  },
-  fabDisabled: {
-    backgroundColor: DesignTokens.outline,
-  },
   /* Bottom Nav */
   bottomNav: {
     flexDirection: 'row',
@@ -793,7 +783,7 @@ const styles = StyleSheet.create({
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
