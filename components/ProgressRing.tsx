@@ -2,12 +2,13 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
     useAnimatedProps,
-    useDerivedValue,
     useSharedValue,
     withSpring,
-    withTiming,
+    withTiming
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+
+import { DesignTokens } from '@/constants/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -16,17 +17,13 @@ interface ProgressRingProps {
   total: number;
   size?: number;
   strokeWidth?: number;
-  color?: string;
-  trackColor?: string;
 }
 
 export function ProgressRing({
   current,
   total,
-  size = 160,
+  size = 192,
   strokeWidth = 12,
-  color = '#0a7ea4',
-  trackColor = '#e8e8ec',
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -47,20 +44,22 @@ export function ProgressRing({
     strokeDashoffset: circumference * (1 - progress.value),
   }));
 
-  const animatedCount = useDerivedValue(() => {
-    return Math.round(displayCount.value);
-  });
-
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <Defs>
+          <LinearGradient id="voyagerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={DesignTokens.primary} />
+            <Stop offset="100%" stopColor={DesignTokens.primaryContainer} />
+          </LinearGradient>
+        </Defs>
         {/* Track */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
-          strokeWidth={strokeWidth}
+          stroke={DesignTokens.surfaceContainerHigh}
+          strokeWidth={strokeWidth - 2}
           fill="none"
         />
         {/* Progress */}
@@ -68,7 +67,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke="url(#voyagerGrad)"
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
@@ -78,11 +77,8 @@ export function ProgressRing({
         />
       </Svg>
       <View style={styles.labelContainer}>
-        <Text style={[styles.countText, { color }]}>{current}</Text>
-        <Text style={styles.totalText}>/ {total}</Text>
-        <Text style={styles.percentText}>
-          {Math.round(percentage * 100)}%
-        </Text>
+        <Text style={styles.countText}>{current}</Text>
+        <Text style={styles.totalText}>Of {total} States</Text>
       </View>
     </View>
   );
@@ -98,19 +94,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '800',
+    color: DesignTokens.onSurface,
+    letterSpacing: -2,
   },
   totalText: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '500',
+    fontSize: 10,
+    color: DesignTokens.onSurfaceVariant,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
     marginTop: -2,
-  },
-  percentText: {
-    fontSize: 12,
-    color: '#aaa',
-    fontWeight: '600',
-    marginTop: 4,
   },
 });

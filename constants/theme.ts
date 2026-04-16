@@ -5,24 +5,62 @@
 
 import { Platform, StyleSheet } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#0052d0';
+const tintColorDark = '#799dff';
+
+export const DesignTokens = {
+  primary: '#0052d0',
+  primaryDim: '#0047b7',
+  primaryContainer: '#799dff',
+  primaryFixed: '#799dff',
+  onPrimary: '#f1f2ff',
+  onPrimaryContainer: '#001e58',
+  secondary: '#5543cf',
+  secondaryDim: '#4935c3',
+  secondaryContainer: '#d2ccff',
+  onSecondary: '#f5f0ff',
+  onSecondaryContainer: '#412abb',
+  tertiary: '#a43336',
+  tertiaryDim: '#94272b',
+  tertiaryContainer: '#ff928f',
+  onTertiary: '#ffefee',
+  error: '#b31b25',
+  errorContainer: '#fb5151',
+  background: '#f7f5ff',
+  surface: '#f7f5ff',
+  surfaceBright: '#f7f5ff',
+  surfaceDim: '#ccd2ff',
+  surfaceContainerLowest: '#ffffff',
+  surfaceContainerLow: '#f0efff',
+  surfaceContainer: '#e5e6ff',
+  surfaceContainerHigh: '#dee0ff',
+  surfaceContainerHighest: '#d7dbff',
+  surfaceVariant: '#d7dbff',
+  surfaceTint: '#0052d0',
+  onSurface: '#292d46',
+  onSurfaceVariant: '#565a75',
+  outline: '#717592',
+  outlineVariant: '#a8abca',
+  inverseSurface: '#080c24',
+  inverseOnSurface: '#979bba',
+  inversePrimary: '#5e8bff',
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    textSecondary: '#687076',
-    background: '#fff',
-    surface: '#f4f4f8',
+    text: DesignTokens.onSurface,
+    textSecondary: DesignTokens.onSurfaceVariant,
+    background: DesignTokens.background,
+    surface: DesignTokens.surface,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: DesignTokens.onSurfaceVariant,
+    tabIconDefault: DesignTokens.outline,
     tabIconSelected: tintColorLight,
-    progressRingTrack: '#e8e8ec',
+    progressRingTrack: DesignTokens.surfaceContainerHigh,
     progressRingFill: tintColorLight,
-    milestoneLocked: '#c8c8d0',
-    milestoneUnlocked: '#0a7ea4',
-    cardBorder: '#e8e8ec',
+    milestoneLocked: DesignTokens.surfaceDim,
+    milestoneUnlocked: DesignTokens.primary,
+    cardBorder: DesignTokens.outlineVariant + '1a',
   },
   dark: {
     text: '#ECEDEE',
@@ -42,19 +80,19 @@ export const Colors = {
 };
 
 export const MilestoneColors: Record<string, string> = {
-  'first-step': '#4CAF50',
-  'explorer': '#FF9800',
-  'all-regions': '#9C27B0',
-  'halfway': '#FFD700',
-  'coast-to-coast': '#00BCD4',
-  'all-51': '#FF5722',
+  'first-step': DesignTokens.primary,
+  'explorer': DesignTokens.secondary,
+  'all-regions': DesignTokens.tertiary,
+  'halfway': DesignTokens.primaryDim,
+  'coast-to-coast': DesignTokens.secondaryDim,
+  'all-51': DesignTokens.tertiary,
 };
 
 export const RegionColors: Record<string, string> = {
-  Northeast: '#5C6BC0',
-  South: '#EF5350',
-  Midwest: '#66BB6A',
-  West: '#FFA726',
+  Northeast: DesignTokens.secondary,
+  South: DesignTokens.tertiary,
+  Midwest: DesignTokens.primary,
+  West: DesignTokens.secondaryDim,
 };
 
 export const Fonts = Platform.select({
@@ -102,7 +140,7 @@ export const Shadows = StyleSheet.create({
 export const CommonStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f8',
+    backgroundColor: DesignTokens.background,
   },
   center: {
     flex: 1,

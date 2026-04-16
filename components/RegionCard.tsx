@@ -1,9 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { USRegion } from '@/constants/regions';
-import { RegionColors } from '@/constants/theme';
+import { DesignTokens, RegionColors } from '@/constants/theme';
 
 interface RegionCardProps {
   region: USRegion;
@@ -13,21 +12,21 @@ interface RegionCardProps {
 }
 
 export function RegionCard({ region, visited, total, onPress }: RegionCardProps) {
-  const color = RegionColors[region.name] ?? '#999';
+  const color = RegionColors[region.name] ?? DesignTokens.outline;
   const progress = total > 0 ? visited / total : 0;
-  const isComplete = visited === total;
 
   return (
     <TouchableOpacity
-      style={[styles.card, isComplete && { borderColor: color }]}
+      style={styles.card}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.header}>
-        <MaterialCommunityIcons name={region.icon as any} size={16} color={color} />
         <Text style={styles.name}>{region.name}</Text>
+        <Text style={[styles.count, { color }]}>
+          {visited}/{total}
+        </Text>
       </View>
-
       <View style={styles.progressBarTrack}>
         <View
           style={[
@@ -36,10 +35,6 @@ export function RegionCard({ region, visited, total, onPress }: RegionCardProps)
           ]}
         />
       </View>
-
-      <Text style={[styles.count, { color }]}>
-        {visited}/{total}
-      </Text>
     </TouchableOpacity>
   );
 }
@@ -47,44 +42,41 @@ export function RegionCard({ region, visited, total, onPress }: RegionCardProps)
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: 80,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: '#eee',
+    minWidth: '45%',
+    backgroundColor: DesignTokens.surfaceContainerLowest,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: DesignTokens.outlineVariant + '1a',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 20,
     elevation: 1,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   name: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#333',
-    flexShrink: 1,
+    color: DesignTokens.onSurfaceVariant,
   },
   progressBarTrack: {
     height: 6,
-    backgroundColor: '#eee',
-    borderRadius: 3,
+    backgroundColor: DesignTokens.surfaceVariant,
+    borderRadius: 999,
     overflow: 'hidden',
-    marginBottom: 6,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 999,
   },
   count: {
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '900',
   },
 });

@@ -14,11 +14,11 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen
           name="map"
-          options={{ headerShown: true, title: 'Map' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="timeline"
-          options={{ headerShown: true, title: 'Timeline' }}
+          options={{ headerShown: false }}
         />
       </Stack>
       <StatusBar style="auto" />

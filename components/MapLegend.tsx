@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { DesignTokens } from '@/constants/theme';
 import { hslToHexAlpha } from '@/utils/map-coloring';
 
 const LEGEND_COLORS = [
@@ -44,35 +45,35 @@ export function MapLegend() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 16,
     left: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 12,
+    backgroundColor: DesignTokens.surfaceContainerLowest + 'ee',
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 4,
   },
   toggle: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   toggleText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555',
+    color: DesignTokens.onSurfaceVariant,
   },
   body: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    gap: 4,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    gap: 6,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   dot: {
     width: 14,
@@ -82,11 +83,12 @@ const styles = StyleSheet.create({
   unvisitedDot: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: 'rgba(150, 150, 150, 0.5)',
+    borderColor: DesignTokens.outlineVariant,
     borderStyle: 'dashed',
   },
   label: {
     fontSize: 11,
-    color: '#555',
+    fontWeight: '500',
+    color: DesignTokens.onSurfaceVariant,
   },
 });

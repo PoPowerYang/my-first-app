@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { MilestoneColors } from '@/constants/theme';
+import { DesignTokens } from '@/constants/theme';
 import type { Milestone } from '@/hooks/use-milestones';
 
 interface MilestoneCardProps {
@@ -11,88 +12,135 @@ interface MilestoneCardProps {
 }
 
 export function MilestoneCard({ milestone }: MilestoneCardProps) {
-  const accentColor = MilestoneColors[milestone.id] ?? '#999';
-
   return (
     <Animated.View
       entering={FadeIn.duration(400)}
       style={[
         styles.card,
-        milestone.unlocked
-          ? { borderColor: accentColor, backgroundColor: accentColor + '15' }
-          : styles.locked,
+        milestone.unlocked ? styles.unlockedCard : styles.lockedCard,
       ]}
     >
-      <View style={[styles.iconContainer, !milestone.unlocked && styles.lockedIcon]}>
-        <MaterialCommunityIcons
-          name={milestone.icon as any}
-          size={28}
-          color={milestone.unlocked ? accentColor : '#bbb'}
-        />
-      </View>
-      <Text
-        style={[
-          styles.title,
-          milestone.unlocked ? { color: accentColor } : styles.lockedText,
-        ]}
-        numberOfLines={1}
-      >
-        {milestone.title}
-      </Text>
-      <Text style={styles.description} numberOfLines={2}>
-        {milestone.description}
-      </Text>
-      {!milestone.unlocked && (
-        <View style={styles.lockOverlay}>
-          <MaterialCommunityIcons name="lock" size={12} color="#bbb" />
+      {milestone.unlocked && (
+        <View style={styles.decorCircle} />
+      )}
+      {milestone.unlocked ? (
+        <LinearGradient
+          colors={[DesignTokens.primary, DesignTokens.primaryContainer]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.iconContainer}
+        >
+          <MaterialCommunityIcons
+            name={milestone.icon as any}
+            size={24}
+            color={DesignTokens.onPrimary}
+          />
+        </LinearGradient>
+      ) : (
+        <View style={styles.lockedIconContainer}>
+          <MaterialCommunityIcons
+            name={milestone.icon as any}
+            size={24}
+            color={DesignTokens.outline}
+          />
         </View>
       )}
+      <View style={styles.textContainer}>
+        {milestone.unlocked ? (
+          <Text style={styles.statusUnlocked}>Unlocked</Text>
+        ) : (
+          <View style={styles.lockedStatus}>
+            <MaterialCommunityIcons name="lock" size={8} color={DesignTokens.onSurfaceVariant} />
+            <Text style={styles.statusLocked}>Locked</Text>
+          </View>
+        )}
+        <Text
+          style={[
+            styles.title,
+            !milestone.unlocked && styles.lockedTitle,
+          ]}
+          numberOfLines={1}
+        >
+          {milestone.title}
+        </Text>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: 110,
-    height: 130,
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 160,
+    borderRadius: 24,
+    padding: 20,
+    gap: 24,
     marginRight: 12,
-    backgroundColor: '#fff',
+    overflow: 'hidden',
   },
-  locked: {
-    borderColor: '#ddd',
-    backgroundColor: '#f5f5f5',
+  unlockedCard: {
+    backgroundColor: DesignTokens.surfaceContainerLowest,
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 30,
+    elevation: 4,
+  },
+  lockedCard: {
+    backgroundColor: DesignTokens.surfaceDim + '66',
+  },
+  decorCircle: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 64,
+    height: 64,
+    borderBottomLeftRadius: 999,
+    backgroundColor: DesignTokens.primary + '0d',
   },
   iconContainer: {
-    marginBottom: 6,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  lockedIcon: {
-    opacity: 0.3,
+  lockedIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: DesignTokens.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textContainer: {
+    gap: 4,
+  },
+  statusUnlocked: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: DesignTokens.primary,
+  },
+  lockedStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusLocked: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: DesignTokens.onSurfaceVariant,
   },
   title: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '700',
-    textAlign: 'center',
+    color: DesignTokens.onSurface,
   },
-  lockedText: {
-    color: '#bbb',
-  },
-  description: {
-    fontSize: 9,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  lockOverlay: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-  },
-  lockIcon: {
-    fontSize: 12,
+  lockedTitle: {
+    color: DesignTokens.onSurfaceVariant,
+    opacity: 0.6,
   },
 });

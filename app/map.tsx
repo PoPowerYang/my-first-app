@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Geojson, type Region } from 'react-native-maps';
@@ -16,7 +16,7 @@ import { ConfettiOverlay } from '@/components/ConfettiOverlay';
 import { MapLegend } from '@/components/MapLegend';
 import { MilestoneUnlockModal } from '@/components/MilestoneUnlockModal';
 import { US_REGIONS } from '@/constants/regions';
-import { CommonStyles } from '@/constants/theme';
+import { DesignTokens } from '@/constants/theme';
 import { getNewlyUnlockedMilestones, useMilestones } from '@/hooks/use-milestones';
 import { useVisitedStates } from '@/hooks/use-visited-states';
 import { extractGpsFromExif, reverseGeocodeToState } from '@/utils/image-geo-extractor';
@@ -33,6 +33,7 @@ const UNVISITED_FILL = 'rgba(180, 180, 190, 0.15)';
 const UNVISITED_STROKE = 'rgba(150, 150, 160, 0.4)';
 
 export default function MapScreen() {
+  const router = useRouter();
   const { visitedStates, isLoading, addState, clearStates } = useVisitedStates();
   const [processing, setProcessing] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -190,64 +191,88 @@ export default function MapScreen() {
 
   if (isLoading) {
     return (
-      <View style={[CommonStyles.container, CommonStyles.center]}>
-        <ActivityIndicator size="large" />
+      <View style={styles.root}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={DesignTokens.primary} />
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[CommonStyles.container, { flexDirection: 'column' }]}>
-      <MapView
-        ref={mapRef}
-        key={`map-${visitedStates.size}`}
-        style={styles.map}
-        initialRegion={regionRef.current}
-        onRegionChangeComplete={(region) => {
-          regionRef.current = region;
-        }}
-      >
-        {statesGeoJsonElements}
-      </MapView>
-
-      {/* Progress Badge */}
-      <Animated.View style={[styles.badge, badgeStyle]}>
-        <Text style={styles.badgeText}>
-          {visitedStates.size} / {statesData.features.length} states
-        </Text>
-      </Animated.View>
-
-      {/* Region Zoom Shortcuts */}
-      <View style={styles.regionButtons}>
-        {US_REGIONS.map((r) => (
-          <TouchableOpacity
-            key={r.shortName}
-            style={styles.regionButton}
-            onPress={() => handleRegionZoom(r.name)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.regionButtonText}>{r.shortName}</Text>
-          </TouchableOpacity>
-        ))}
+    <View style={styles.root}>
+      {/* App Bar */}
+      <View style={styles.appBar}>
+        <View style={styles.appBarLeft}>
+          <MaterialCommunityIcons
+            name="book-open-page-variant"
+            size={22}
+            color={DesignTokens.primary}
+          />
+          <Text style={styles.appBarTitle}>The Cartographic Ledger</Text>
+        </View>
+        <View style={styles.avatar}>
+          <MaterialCommunityIcons
+            name="account"
+            size={22}
+            color={DesignTokens.onSurfaceVariant}
+          />
+        </View>
       </View>
 
-      {/* Map Legend */}
-      <MapLegend />
-
-      {/* Clear Button */}
-      {visitedStates.size > 0 && (
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={() =>
-            Alert.alert('Clear All', 'Remove all visited states?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Clear', style: 'destructive', onPress: clearStates },
-            ])
-          }
+      {/* Map */}
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          key={`map-${visitedStates.size}`}
+          style={styles.map}
+          initialRegion={regionRef.current}
+          onRegionChangeComplete={(region) => {
+            regionRef.current = region;
+          }}
         >
-          <MaterialCommunityIcons name="close" size={18} color="#fff" />
-        </TouchableOpacity>
-      )}
+          {statesGeoJsonElements}
+        </MapView>
+
+        {/* Progress Badge */}
+        <Animated.View style={[styles.badge, badgeStyle]}>
+          <Text style={styles.badgeText}>
+            {visitedStates.size} / {statesData.features.length} states
+          </Text>
+        </Animated.View>
+
+        {/* Region Zoom Shortcuts */}
+        <View style={styles.regionButtons}>
+          {US_REGIONS.map((r) => (
+            <TouchableOpacity
+              key={r.shortName}
+              style={styles.regionButton}
+              onPress={() => handleRegionZoom(r.name)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.regionButtonText}>{r.shortName}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Map Legend */}
+        <MapLegend />
+
+        {/* Clear Button */}
+        {visitedStates.size > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() =>
+              Alert.alert('Clear All', 'Remove all visited states?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear', style: 'destructive', onPress: clearStates },
+              ])
+            }
+          >
+            <MaterialCommunityIcons name="close" size={18} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* FAB */}
       <TouchableOpacity
@@ -257,9 +282,9 @@ export default function MapScreen() {
         activeOpacity={0.8}
       >
         {processing ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={DesignTokens.onPrimary} />
         ) : (
-          <MaterialCommunityIcons name="camera" size={28} color="#fff" />
+          <MaterialCommunityIcons name="camera" size={28} color={DesignTokens.onPrimary} />
         )}
       </TouchableOpacity>
 
@@ -277,6 +302,40 @@ export default function MapScreen() {
         description={milestoneModal?.description ?? ''}
         onDismiss={() => setMilestoneModal(null)}
       />
+
+      {/* Bottom Navigation Bar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => router.push('/')}
+        >
+          <MaterialCommunityIcons
+            name="home-outline"
+            size={24}
+            color={DesignTokens.outline}
+          />
+          <Text style={styles.navLabel}>Archive</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
+          <MaterialCommunityIcons
+            name="map"
+            size={24}
+            color={DesignTokens.primary}
+          />
+          <Text style={[styles.navLabel, styles.navLabelActive]}>Explorer</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => router.push('/timeline' as any)}
+        >
+          <MaterialCommunityIcons
+            name="timeline-text-outline"
+            size={24}
+            color={DesignTokens.outline}
+          />
+          <Text style={styles.navLabel}>Journal</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -294,76 +353,170 @@ function getMilestoneInfo(id: string) {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: DesignTokens.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /* App Bar */
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    height: 96,
+    paddingTop: 48,
+    backgroundColor: DesignTokens.background + 'cc',
+    zIndex: 50,
+  },
+  appBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  appBarTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: DesignTokens.primary,
+    letterSpacing: -0.3,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: DesignTokens.surfaceContainerHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /* Map */
+  mapContainer: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginHorizontal: 12,
+    marginBottom: 4,
+  },
   map: {
     flex: 1,
     width: '100%',
   },
+  /* FAB */
   fab: {
     position: 'absolute',
-    bottom: 32,
+    bottom: 110,
     right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#0a7ea4',
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: DesignTokens.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowRadius: 16,
     elevation: 8,
+    zIndex: 40,
   },
   fabDisabled: {
-    backgroundColor: '#999',
+    backgroundColor: DesignTokens.outline,
   },
   badge: {
     position: 'absolute',
     top: 16,
     alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: DesignTokens.surfaceContainerLowest,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   badgeText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: DesignTokens.onSurface,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   regionButtons: {
     position: 'absolute',
     top: 60,
     right: 12,
-    gap: 6,
+    gap: 8,
   },
   regionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: DesignTokens.surfaceContainerLowest,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
   regionButtonText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#333',
+    color: DesignTokens.onSurface,
+    letterSpacing: 0.5,
   },
   clearButton: {
     position: 'absolute',
-    bottom: 32,
-    left: 24,
+    bottom: 16,
+    left: 16,
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 14,
+    backgroundColor: DesignTokens.onSurface + '80',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  /* Bottom Nav */
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 12,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: DesignTokens.primary,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  navItemActive: {
+    backgroundColor: DesignTokens.surfaceContainerLow,
+  },
+  navLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 4,
+    color: DesignTokens.outline,
+  },
+  navLabelActive: {
+    color: DesignTokens.primary,
   },
 });
