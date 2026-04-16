@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-    useAnimatedProps,
-    useSharedValue,
-    withSpring,
-    withTiming
+  useAnimatedProps,
+  useSharedValue,
+  withSpring,
+  withTiming
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
@@ -23,7 +23,7 @@ export function ProgressRing({
   current,
   total,
   size = 192,
-  strokeWidth = 12,
+  strokeWidth = 25,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;

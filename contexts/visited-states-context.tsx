@@ -1,19 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
-
-const STORAGE_KEY = 'visited-states';
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
 
 export interface VisitedStateEntry {
   stateName: string;
   addedAt: string; // ISO date string
 }
 
-/**
- * Hook for managing the set of US states the user has visited.
- * Persists data to AsyncStorage across app restarts.
- * Stores both a Set<string> for quick lookup and an ordered entries array with timestamps.
- */
-export function useVisitedStates() {
+const STORAGE_KEY = 'visited-states';
+
+interface VisitedStatesContextValue {
+  visitedStates: Set<string>;
+  entries: VisitedStateEntry[];
+  isLoading: boolean;
+  addState: (stateName: string) => void;
+  clearStates: () => void;
+}
+
+const VisitedStatesContext = createContext<VisitedStatesContextValue | null>(null);
+
+export function VisitedStatesProvider({ children }: { children: React.ReactNode }) {
   const [visitedStates, setVisitedStates] = useState<Set<string>>(new Set());
   const [entries, setEntries] = useState<VisitedStateEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,10 +34,8 @@ export function useVisitedStates() {
       .then((raw) => {
         if (raw) {
           const parsed = JSON.parse(raw);
-          // Backward-compatible: handle both old string[] and new entry[] formats
           if (Array.isArray(parsed) && parsed.length > 0) {
             if (typeof parsed[0] === 'string') {
-              // Legacy format: string[]
               const migrated: VisitedStateEntry[] = parsed.map((s: string) => ({
                 stateName: s,
                 addedAt: new Date(0).toISOString(),
@@ -34,7 +43,6 @@ export function useVisitedStates() {
               setEntries(migrated);
               setVisitedStates(new Set(parsed));
             } else {
-              // New format: VisitedStateEntry[]
               const loaded: VisitedStateEntry[] = parsed;
               setEntries(loaded);
               setVisitedStates(new Set(loaded.map((e) => e.stateName)));
@@ -81,5 +89,19 @@ export function useVisitedStates() {
     persist([]);
   }, [persist]);
 
-  return { visitedStates, entries, isLoading, addState, clearStates };
+  return (
+    <VisitedStatesContext.Provider
+      value={{ visitedStates, entries, isLoading, addState, clearStates }}
+    >
+      {children}
+    </VisitedStatesContext.Provider>
+  );
+}
+
+export function useVisitedStatesContext(): VisitedStatesContextValue {
+  const ctx = useContext(VisitedStatesContext);
+  if (!ctx) {
+    throw new Error('useVisitedStatesContext must be used within VisitedStatesProvider');
+  }
+  return ctx;
 }

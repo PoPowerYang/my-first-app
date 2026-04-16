@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getRegionForState } from '@/constants/regions';
 import { DesignTokens } from '@/constants/theme';
-import { useVisitedStates } from '@/hooks/use-visited-states';
+import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 
 const REGION_BORDER_COLORS: Record<string, string> = {
   West: '#f59e0b',
@@ -45,7 +46,7 @@ type FilterOption = 'All States' | string;
 
 export default function TimelineScreen() {
   const router = useRouter();
-  const { entries } = useVisitedStates();
+  const { entries } = useVisitedStatesContext();
   const sortedEntries = [...entries].reverse();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All States');
 
@@ -68,27 +69,8 @@ export default function TimelineScreen() {
 
   if (sortedEntries.length === 0) {
     return (
-      <View style={styles.root}>
-        {/* App Bar */}
-        <View style={styles.appBar}>
-          <View style={styles.appBarLeft}>
-            <MaterialCommunityIcons
-              name="book-open-page-variant"
-              size={22}
-              color={DesignTokens.primary}
-            />
-            <Text style={styles.appBarTitle}>The Cartographic Ledger</Text>
-          </View>
-          <View style={styles.avatar}>
-            <MaterialCommunityIcons
-              name="account"
-              size={22}
-              color={DesignTokens.onSurfaceVariant}
-            />
-          </View>
-        </View>
-
-        <View style={styles.emptyContainer}>
+      <SafeAreaView style={styles.root} edges={['top']}>
+          <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
             <MaterialCommunityIcons
               name="map-outline"
@@ -111,31 +93,12 @@ export default function TimelineScreen() {
 
         {/* Bottom Nav */}
         <BottomNav router={router} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.root}>
-      {/* App Bar */}
-      <View style={styles.appBar}>
-        <View style={styles.appBarLeft}>
-          <MaterialCommunityIcons
-            name="book-open-page-variant"
-            size={22}
-            color={DesignTokens.primary}
-          />
-          <Text style={styles.appBarTitle}>The Cartographic Ledger</Text>
-        </View>
-        <View style={styles.avatar}>
-          <MaterialCommunityIcons
-            name="account"
-            size={22}
-            color={DesignTokens.onSurfaceVariant}
-          />
-        </View>
-      </View>
-
+    <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -272,7 +235,7 @@ export default function TimelineScreen() {
 
       {/* Bottom Nav */}
       <BottomNav router={router} />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -318,36 +281,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: DesignTokens.background,
   },
-  /* App Bar */
-  appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    height: 96,
-    paddingTop: 48,
-    backgroundColor: DesignTokens.background + 'cc',
-    zIndex: 50,
-  },
-  appBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  appBarTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: DesignTokens.primary,
-    letterSpacing: -0.3,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: DesignTokens.surfaceContainerHigh,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   /* Scroll */
   scrollView: {
     flex: 1,
