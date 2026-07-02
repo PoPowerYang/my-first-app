@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withSpring,
-  withTiming
+    useAnimatedProps,
+    useSharedValue,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -25,6 +26,8 @@ export function ProgressRing({
   size = 192,
   strokeWidth = 25,
 }: ProgressRingProps) {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const percentage = total > 0 ? current / total : 0;
@@ -49,8 +52,8 @@ export function ProgressRing({
       <Svg width={size} height={size}>
         <Defs>
           <LinearGradient id="voyagerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={DesignTokens.primary} />
-            <Stop offset="100%" stopColor={DesignTokens.primaryContainer} />
+            <Stop offset="0%" stopColor={tokens.primaryContainer} />
+            <Stop offset="100%" stopColor={tokens.secondary} />
           </LinearGradient>
         </Defs>
         {/* Track */}
@@ -58,7 +61,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={DesignTokens.surfaceContainerHigh}
+          stroke={tokens.outlineVariant}
           strokeWidth={strokeWidth - 2}
           fill="none"
         />
@@ -70,7 +73,7 @@ export function ProgressRing({
           stroke="url(#voyagerGrad)"
           strokeWidth={strokeWidth}
           fill="none"
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={circumference}
           animatedProps={animatedProps}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
@@ -84,7 +87,7 @@ export function ProgressRing({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -94,14 +97,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 40,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
+    fontWeight: '900',
+    color: t.onSurface,
     letterSpacing: -2,
   },
   totalText: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 2,

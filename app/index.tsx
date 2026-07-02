@@ -1,22 +1,23 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomNav } from '@/components/BottomNav';
 import { MilestoneCard } from '@/components/MilestoneCard';
 import { ProgressRing } from '@/components/ProgressRing';
 import { RegionCard } from '@/components/RegionCard';
 import { getRegionProgress } from '@/constants/countries';
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies } from '@/constants/theme';
 import { useCountry } from '@/contexts/country-context';
+import { useTheme } from '@/contexts/theme-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 import { useMilestones } from '@/hooks/use-milestones';
 
@@ -25,6 +26,8 @@ export default function HomeScreen() {
   const { country } = useCountry();
   const { visitedStates, entries } = useVisitedStatesContext();
   const milestones = useMilestones(visitedStates);
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const totalStates = country.subdivisions.length;
   const recentEntries = [...entries].reverse().slice(0, 5);
   const regionsVisited = country.regions.filter((r) =>
@@ -34,43 +37,44 @@ export default function HomeScreen() {
     totalStates > 0 ? Math.round((visitedStates.size / totalStates) * 100) : 0;
 
   const statPills = [
-    { icon: 'map-marker' as const, color: DesignTokens.primary, label: `${visitedStates.size} Visited` },
-    { icon: 'compass' as const, color: DesignTokens.secondary, label: `${regionsVisited} Regions` },
-    { icon: 'chart-line' as const, color: DesignTokens.tertiary, label: `${percentage}% Complete` },
-  ];
-
-  const navItems = [
-    { icon: 'home' as const, label: 'Archive', route: undefined, active: true },
-    { icon: 'map-outline' as const, label: 'Explorer', route: '/map' as const, active: false },
-    { icon: 'timeline-text-outline' as const, label: 'Journal', route: '/timeline' as const, active: false },
-    { icon: 'cog-outline' as const, label: 'Settings', route: '/settings' as const, active: false },
+    { icon: 'map-marker' as const, color: tokens.primaryContainer, label: `${visitedStates.size} Visited` },
+    { icon: 'compass' as const, color: tokens.secondary, label: `${regionsVisited} Regions` },
+    { icon: 'chart-line' as const, color: tokens.tertiaryContainer, label: `${percentage}% Complete` },
   ];
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Brutalist Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>STATEDEX</Text>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero: Progress Ring & Quick Stats */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroContent}>
-            <ProgressRing current={visitedStates.size} total={totalStates} />
-            <View style={styles.heroText}>
-              <Text style={styles.heroTitle}>Your Voyage Continues</Text>
-              <Text style={styles.heroSubtitle}>
-                {percentage > 0
-                  ? `${percentage}% of ${country.name} explored.`
-                  : `Start exploring ${country.name}.`}
-              </Text>
-              <View style={styles.pillRow}>
-                {statPills.map((pill) => (
-                  <View key={pill.icon} style={styles.pill}>
-                    <MaterialCommunityIcons name={pill.icon} size={14} color={pill.color} />
-                    <Text style={[styles.pillText, { color: pill.color }]}>{pill.label}</Text>
-                  </View>
-                ))}
+        <View style={styles.heroWrapper}>
+          <View style={styles.heroShadow} />
+          <View style={styles.heroCard}>
+            <View style={styles.heroContent}>
+              <ProgressRing current={visitedStates.size} total={totalStates} />
+              <View style={styles.heroText}>
+                <Text style={styles.heroTitle}>YOUR VOYAGE CONTINUES</Text>
+                <Text style={styles.heroSubtitle}>
+                  {percentage > 0
+                    ? `${percentage}% of ${country.name} explored.`
+                    : `Start exploring ${country.name}.`}
+                </Text>
+                <View style={styles.pillRow}>
+                  {statPills.map((pill) => (
+                    <View key={pill.icon} style={styles.pill}>
+                      <MaterialCommunityIcons name={pill.icon} size={14} color={pill.color} />
+                      <Text style={[styles.pillText, { color: pill.color }]}>{pill.label}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
           </View>
@@ -79,10 +83,12 @@ export default function HomeScreen() {
         {/* Milestones */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Milestones</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAll}>VIEW ALL</Text>
-            </TouchableOpacity>
+            <View style={styles.sectionTitleWrapper}>
+              <View style={styles.sectionTitleShadow} />
+              <View style={styles.sectionTitleBox}>
+                <Text style={styles.sectionTitleText}>MILESTONES</Text>
+              </View>
+            </View>
           </View>
           <FlatList
             data={milestones}
@@ -97,9 +103,12 @@ export default function HomeScreen() {
 
         {/* Regional Progress */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>
-            Regional Progress
-          </Text>
+          <View style={styles.sectionTitleWrapper}>
+            <View style={styles.sectionTitleShadow} />
+            <View style={styles.sectionTitleBox}>
+              <Text style={styles.sectionTitleText}>REGIONAL PROGRESS</Text>
+            </View>
+          </View>
           <View style={styles.regionGrid}>
             {country.regions.map((region, idx) => {
               const { visited, total } = getRegionProgress(region, visitedStates);
@@ -122,9 +131,12 @@ export default function HomeScreen() {
         {/* Recent Logs */}
         {recentEntries.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>
-              Recent Logs
-            </Text>
+            <View style={styles.sectionTitleWrapper}>
+              <View style={styles.sectionTitleShadow} />
+              <View style={styles.sectionTitleBox}>
+                <Text style={styles.sectionTitleText}>RECENT LOGS</Text>
+              </View>
+            </View>
             <View style={styles.timeline}>
               <View style={styles.timelineTrack} />
               {recentEntries.map((entry, i) => {
@@ -150,7 +162,7 @@ export default function HomeScreen() {
                           <Text
                             style={[
                               styles.timelineState,
-                              !isFirst && { color: DesignTokens.onSurfaceVariant },
+                              !isFirst && { color: tokens.onSurfaceVariant },
                             ]}
                           >
                             {entry.stateName}
@@ -167,8 +179,8 @@ export default function HomeScreen() {
                               style={[
                                 styles.timeBadgeText,
                                 isFirst
-                                  ? { color: DesignTokens.primary }
-                                  : { color: DesignTokens.onSurfaceVariant },
+                                  ? { color: tokens.primaryContainer }
+                                  : { color: tokens.onSurfaceVariant },
                               ]}
                             >
                               {formatRelativeDate(addedDate)}
@@ -188,24 +200,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        {navItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.navItem, item.active && styles.navItemActive]}
-            onPress={item.route ? () => router.push(item.route) : undefined}
-          >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={24}
-              color={item.active ? DesignTokens.primary : DesignTokens.outline}
-            />
-            <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <BottomNav activeTab="archive" />
     </SafeAreaView>
   );
 }
@@ -224,10 +219,28 @@ function formatRelativeDate(date: Date): string {
   return date.toLocaleDateString();
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: DesignTokens.background,
+    backgroundColor: t.background,
+  },
+  /* Header */
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: t.background,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 22,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    fontStyle: 'italic',
   },
   /* Scroll */
   scrollView: {
@@ -235,14 +248,28 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 32,
+    paddingTop: 48,
+    gap: 48,
   },
   /* Hero */
+  heroWrapper: {
+    position: 'relative',
+  },
+  heroShadow: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: -8,
+    bottom: -8,
+    backgroundColor: t.primaryContainer,
+  },
   heroCard: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
-    borderRadius: 40,
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 4,
+    borderColor: t.onSurface,
     padding: 32,
+    position: 'relative',
+    zIndex: 1,
   },
   heroContent: {
     alignItems: 'center',
@@ -253,15 +280,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 22,
+    fontWeight: '900',
+    color: t.onSurface,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
   },
   heroSubtitle: {
+    fontFamily: FontFamilies.body,
     fontSize: 14,
     fontWeight: '500',
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
     textAlign: 'center',
   },
   pillRow: {
@@ -275,40 +306,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    borderRadius: 999,
+    backgroundColor: t.surfaceContainerLowest,
+    borderWidth: 2,
+    borderColor: t.outlineVariant,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
   },
   pillText: {
+    fontFamily: FontFamilies.label,
     fontSize: 12,
     fontWeight: '700',
   },
   /* Section */
-  section: {},
+  section: {
+    gap: 20,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginBottom: 12,
     paddingHorizontal: 4,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+  sectionTitleWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
   },
-  viewAll: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: DesignTokens.primary,
+  sectionTitleShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: t.secondary,
+  },
+  sectionTitleBox: {
+    backgroundColor: t.background,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    position: 'relative',
+    zIndex: 1,
+  },
+  sectionTitleText: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 20,
+    fontWeight: '900',
+    color: t.onSurface,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: -0.5,
   },
   milestoneList: {
     paddingBottom: 4,
@@ -329,7 +375,7 @@ const styles = StyleSheet.create({
     top: 8,
     bottom: 8,
     width: 2,
-    backgroundColor: DesignTokens.outlineVariant + '33',
+    backgroundColor: t.outlineVariant,
   },
   timelineEntry: {
     flexDirection: 'row',
@@ -339,36 +385,31 @@ const styles = StyleSheet.create({
   timelineDot: {
     width: 18,
     height: 18,
-    borderRadius: 9,
     marginLeft: -9,
     borderWidth: 4,
-    borderColor: DesignTokens.background,
+    borderColor: t.background,
     zIndex: 10,
   },
   timelineDotActive: {
-    backgroundColor: DesignTokens.primary,
+    backgroundColor: t.primaryContainer,
   },
   timelineDotInactive: {
-    backgroundColor: DesignTokens.surfaceDim,
+    backgroundColor: t.surfaceContainerHighest,
   },
   timelineCard: {
     flex: 1,
     marginLeft: 20,
-    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: t.outlineVariant,
     padding: 16,
   },
   timelineCardActive: {
-    backgroundColor: DesignTokens.surfaceContainerLowest,
+    backgroundColor: t.surfaceContainerLow,
     borderLeftWidth: 4,
-    borderLeftColor: DesignTokens.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderLeftColor: t.primaryContainer,
   },
   timelineCardInactive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
+    backgroundColor: t.surfaceContainer,
   },
   timelineCardContent: {
     flexDirection: 'row',
@@ -376,63 +417,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timelineState: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 15,
     fontWeight: '700',
-    color: DesignTokens.onSurface,
+    color: t.onSurface,
+    textTransform: 'uppercase',
   },
   timeBadge: {
-    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: t.outlineVariant,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   timeBadgeActive: {
-    backgroundColor: DesignTokens.primary + '1a',
+    borderColor: t.primaryContainer,
   },
   timeBadgeInactive: {
-    backgroundColor: DesignTokens.surfaceVariant + '80',
+    borderColor: t.outlineVariant,
   },
   timeBadgeText: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  /* Bottom Nav */
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  navItemActive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
-  },
-  navLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 4,
-    color: DesignTokens.outline,
-  },
-  navLabelActive: {
-    color: DesignTokens.primary,
   },
 });

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 import { hslToHexAlpha } from '@/utils/map-coloring';
 
 const LEGEND_COLORS = [
@@ -12,6 +13,8 @@ const LEGEND_COLORS = [
 ];
 
 export function MapLegend() {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -42,28 +45,27 @@ export function MapLegend() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 16,
     left: 12,
-    backgroundColor: DesignTokens.surfaceContainerLowest + 'ee',
-    borderRadius: 16,
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 2,
+    borderColor: t.onSurface,
     overflow: 'hidden',
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
   },
   toggle: {
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   toggleText: {
+    fontFamily: FontFamilies.label,
     fontSize: 11,
     fontWeight: '700',
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   body: {
     paddingHorizontal: 14,
@@ -78,17 +80,16 @@ const styles = StyleSheet.create({
   dot: {
     width: 14,
     height: 14,
-    borderRadius: 7,
   },
   unvisitedDot: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: DesignTokens.outlineVariant,
-    borderStyle: 'dashed',
+    borderWidth: 2,
+    borderColor: t.outlineVariant,
   },
   label: {
+    fontFamily: FontFamilies.body,
     fontSize: 11,
     fontWeight: '500',
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
   },
 });

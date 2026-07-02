@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 import type { Milestone } from '@/hooks/use-milestones';
 
 interface MilestoneCardProps {
@@ -12,6 +13,9 @@ interface MilestoneCardProps {
 }
 
 export function MilestoneCard({ milestone }: MilestoneCardProps) {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
+
   return (
     <Animated.View
       entering={FadeIn.duration(400)}
@@ -25,7 +29,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
       )}
       {milestone.unlocked ? (
         <LinearGradient
-          colors={[DesignTokens.primary, DesignTokens.primaryContainer]}
+          colors={[tokens.primary, tokens.primaryContainer]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconContainer}
@@ -33,7 +37,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
           <MaterialCommunityIcons
             name={milestone.icon as any}
             size={24}
-            color={DesignTokens.onPrimary}
+            color={tokens.onPrimary}
           />
         </LinearGradient>
       ) : (
@@ -41,7 +45,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
           <MaterialCommunityIcons
             name={milestone.icon as any}
             size={24}
-            color={DesignTokens.outline}
+            color={tokens.outline}
           />
         </View>
       )}
@@ -50,7 +54,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
           <Text style={styles.statusUnlocked}>Unlocked</Text>
         ) : (
           <View style={styles.lockedStatus}>
-            <MaterialCommunityIcons name="lock" size={8} color={DesignTokens.onSurfaceVariant} />
+            <MaterialCommunityIcons name="lock" size={8} color={tokens.onSurfaceVariant} />
             <Text style={styles.statusLocked}>Locked</Text>
           </View>
         )}
@@ -68,47 +72,41 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   card: {
     width: 160,
-    borderRadius: 24,
     padding: 20,
     gap: 24,
     marginRight: 12,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: t.onSurface,
   },
   unlockedCard: {
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 30,
-    elevation: 4,
+    backgroundColor: t.surfaceContainerLow,
   },
   lockedCard: {
-    backgroundColor: DesignTokens.surfaceDim + '66',
+    backgroundColor: t.surfaceContainerLowest,
+    borderColor: t.outlineVariant,
   },
   decorCircle: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 64,
-    height: 64,
-    borderBottomLeftRadius: 999,
-    backgroundColor: DesignTokens.primary + '0d',
+    top: 0,
+    right: 0,
+    width: 48,
+    height: 48,
+    backgroundColor: t.primaryContainer + '1a',
   },
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   lockedIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: DesignTokens.surfaceVariant,
+    backgroundColor: t.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -116,11 +114,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusUnlocked: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 2,
-    color: DesignTokens.primary,
+    color: t.primaryContainer,
   },
   lockedStatus: {
     flexDirection: 'row',
@@ -128,19 +127,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusLocked: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 2,
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
   },
   title: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 15,
     fontWeight: '700',
-    color: DesignTokens.onSurface,
+    color: t.onSurface,
+    textTransform: 'uppercase',
   },
   lockedTitle: {
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
     opacity: 0.6,
   },
 });

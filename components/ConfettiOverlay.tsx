@@ -10,7 +10,7 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PARTICLE_COUNT = 60;
-const COLORS = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF9F45', '#C77DFF', '#F72585'];
+const COLORS = ['#00ffff', '#ff51fa', '#daf900', '#c1fffe', '#ffffff', '#ff51fa', '#00ffff'];
 
 interface Particle {
   x: number;

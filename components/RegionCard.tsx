@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import type { CountryRegion } from '@/constants/countries';
-import { DesignTokens, RegionColors, getRegionColorByIndex } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies, RegionColors, getRegionColorByIndex } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 
 interface RegionCardProps {
   region: CountryRegion;
@@ -13,7 +14,9 @@ interface RegionCardProps {
 }
 
 export function RegionCard({ region, visited, total, onPress, colorIndex }: RegionCardProps) {
-  const color = RegionColors[region.name] ?? (colorIndex != null ? getRegionColorByIndex(colorIndex) : DesignTokens.outline);
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
+  const color = RegionColors[region.name] ?? (colorIndex != null ? getRegionColorByIndex(colorIndex) : tokens.outline);
   const progress = total > 0 ? visited / total : 0;
 
   return (
@@ -40,20 +43,14 @@ export function RegionCard({ region, visited, total, onPress, colorIndex }: Regi
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   card: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    borderRadius: 24,
+    backgroundColor: t.surfaceContainerLow,
     padding: 20,
-    borderWidth: 1,
-    borderColor: DesignTokens.outlineVariant + '1a',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 20,
-    elevation: 1,
+    borderWidth: 2,
+    borderColor: t.outlineVariant,
   },
   header: {
     flexDirection: 'row',
@@ -62,21 +59,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   name: {
+    fontFamily: FontFamilies.label,
     fontSize: 12,
     fontWeight: '700',
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   progressBarTrack: {
-    height: 6,
-    backgroundColor: DesignTokens.surfaceVariant,
-    borderRadius: 999,
+    height: 8,
+    backgroundColor: t.outlineVariant,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 999,
   },
   count: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 12,
     fontWeight: '900',
   },

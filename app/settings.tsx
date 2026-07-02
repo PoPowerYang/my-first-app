@@ -1,6 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -10,23 +9,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomNav } from '@/components/BottomNav';
 import { COUNTRIES } from '@/constants/countries';
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies } from '@/constants/theme';
 import { useCountry } from '@/contexts/country-context';
+import { type ThemePreference, useTheme } from '@/contexts/theme-context';
+
+const THEME_OPTIONS: { key: ThemePreference; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }[] = [
+  { key: 'light', label: 'LIGHT', icon: 'white-balance-sunny' },
+  { key: 'dark', label: 'DARK', icon: 'moon-waning-crescent' },
+  { key: 'system', label: 'SYSTEM', icon: 'cellphone' },
+];
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const { country, setCountryCode } = useCountry();
-
-  const navItems = [
-    { icon: 'home-outline' as const, label: 'Archive', route: '/' as const, active: false },
-    { icon: 'map-outline' as const, label: 'Explorer', route: '/map' as const, active: false },
-    { icon: 'timeline-text-outline' as const, label: 'Journal', route: '/timeline' as const, active: false },
-    { icon: 'cog' as const, label: 'Settings', route: undefined, active: true },
-  ];
+  const { tokens, preference, setPreference } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Brutalist Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerBrand}>STATEDEX</Text>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
@@ -34,13 +40,61 @@ export default function SettingsScreen() {
       >
         {/* Header */}
         <View style={styles.headerSection}>
-          <Text style={styles.headerLabel}>Preferences</Text>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerLabel}>PREFERENCES</Text>
+          <Text style={styles.headerTitle}>SETTINGS</Text>
+        </View>
+
+        {/* Theme Selection */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionTitleShadow} />
+            <View style={styles.sectionTitleBox}>
+              <Text style={styles.sectionTitle}>APPEARANCE</Text>
+            </View>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Choose your preferred visual mode.
+          </Text>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map((opt) => {
+              const isSelected = opt.key === preference;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.themeCard,
+                    isSelected && styles.themeCardSelected,
+                  ]}
+                  onPress={() => setPreference(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name={opt.icon}
+                    size={24}
+                    color={isSelected ? tokens.surfaceContainerLowest : tokens.onSurfaceVariant}
+                  />
+                  <Text
+                    style={[
+                      styles.themeLabel,
+                      isSelected && styles.themeLabelSelected,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Country Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Exploration Country</Text>
+          <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionTitleShadow} />
+            <View style={styles.sectionTitleBox}>
+              <Text style={styles.sectionTitle}>EXPLORATION COUNTRY</Text>
+            </View>
+          </View>
           <Text style={styles.sectionSubtitle}>
             Each country tracks its own progress separately.
           </Text>
@@ -65,8 +119,8 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                   {isSelected && (
-                    <View style={styles.checkCircle}>
-                      <MaterialCommunityIcons name="check" size={16} color={DesignTokens.onPrimary} />
+                    <View style={styles.checkBox}>
+                      <MaterialCommunityIcons name="check" size={16} color={tokens.surfaceContainerLowest} />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -75,76 +129,135 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        {navItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.navItem, item.active && styles.navItemActive]}
-            onPress={item.route ? () => router.push(item.route) : undefined}
-          >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={24}
-              color={item.active ? DesignTokens.primary : DesignTokens.outline}
-            />
-            <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Bottom Nav */}
+      <BottomNav activeTab="settings" />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: DesignTokens.background,
+    backgroundColor: t.background,
   },
+
+  /* Header bar */
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: t.background,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    alignItems: 'center',
+  },
+  headerBrand: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 22,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    fontStyle: 'italic',
+  },
+
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 32,
     gap: 32,
   },
   /* Header */
   headerSection: {
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 6,
   },
   headerLabel: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    color: DesignTokens.primary,
+    letterSpacing: 3,
+    color: t.primaryContainer,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
-    letterSpacing: -0.5,
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 36,
+    fontWeight: '900',
+    color: t.onSurface,
+    letterSpacing: -1,
+    textTransform: 'uppercase',
   },
   /* Section */
   section: {
-    gap: 8,
+    gap: 12,
+  },
+  sectionTitleRow: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  sectionTitleShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: t.secondary,
+  },
+  sectionTitleBox: {
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 2,
+    borderColor: t.onSurface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    position: 'relative',
+    zIndex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 14,
+    fontWeight: '900',
+    color: t.onSurface,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   sectionSubtitle: {
+    fontFamily: FontFamilies.body,
     fontSize: 13,
-    color: DesignTokens.onSurfaceVariant,
-    marginBottom: 8,
+    color: t.onSurfaceVariant,
+  },
+  /* Theme Row */
+  themeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+    borderWidth: 2,
+    borderColor: t.outlineVariant,
+    backgroundColor: t.surfaceContainerLow,
+  },
+  themeCardSelected: {
+    borderColor: t.primaryContainer,
+    backgroundColor: t.primaryContainer,
+  },
+  themeLabel: {
+    fontFamily: FontFamilies.label,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: t.onSurfaceVariant,
+    textTransform: 'uppercase',
+  },
+  themeLabelSelected: {
+    color: t.surfaceContainerLowest,
   },
   /* Country List */
   countryList: {
@@ -153,16 +266,15 @@ const styles = StyleSheet.create({
   countryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    borderRadius: 20,
+    backgroundColor: t.surfaceContainerLow,
     padding: 20,
     gap: 16,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: t.outlineVariant,
   },
   countryCardSelected: {
-    borderColor: DesignTokens.primary,
-    backgroundColor: DesignTokens.surfaceContainerLow,
+    borderColor: t.primaryContainer,
+    backgroundColor: t.surfaceContainerHighest,
   },
   countryFlag: {
     fontSize: 32,
@@ -172,58 +284,24 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   countryName: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 17,
     fontWeight: '700',
-    color: DesignTokens.onSurface,
+    color: t.onSurface,
+    textTransform: 'uppercase',
   },
   countryMeta: {
+    fontFamily: FontFamilies.body,
     fontSize: 12,
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
   },
-  checkCircle: {
+  checkBox: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: DesignTokens.primary,
+    backgroundColor: t.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  /* Bottom Nav */
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  navItemActive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
-  },
-  navLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 4,
-    color: DesignTokens.outline,
-  },
-  navLabelActive: {
-    color: DesignTokens.primary,
+    borderWidth: 2,
+    borderColor: t.onSurface,
   },
 });

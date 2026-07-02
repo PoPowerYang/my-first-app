@@ -1,49 +1,132 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Neo Voyage — Kinetic Brutalism Design System
+ *
+ * Dark, aggressive aesthetic with neon accents, sharp corners (0 border-radius),
+ * thick borders, and offset box-shadow effects.
  */
 
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, ViewStyle } from 'react-native';
 
-const tintColorLight = '#0052d0';
-const tintColorDark = '#799dff';
+export type DesignTokensType = typeof DarkDesignTokens;
 
-export const DesignTokens = {
-  primary: '#0052d0',
-  primaryDim: '#0047b7',
-  primaryContainer: '#799dff',
-  primaryFixed: '#799dff',
-  onPrimary: '#f1f2ff',
-  onPrimaryContainer: '#001e58',
-  secondary: '#5543cf',
-  secondaryDim: '#4935c3',
-  secondaryContainer: '#d2ccff',
-  onSecondary: '#f5f0ff',
-  onSecondaryContainer: '#412abb',
-  tertiary: '#a43336',
-  tertiaryDim: '#94272b',
-  tertiaryContainer: '#ff928f',
-  onTertiary: '#ffefee',
-  error: '#b31b25',
-  errorContainer: '#fb5151',
-  background: '#f7f5ff',
-  surface: '#f7f5ff',
-  surfaceBright: '#f7f5ff',
-  surfaceDim: '#ccd2ff',
+export const DarkDesignTokens = {
+  // Primary — Cyan
+  primary: '#c1fffe',
+  primaryDim: '#00e6e6',
+  primaryContainer: '#00ffff',
+  primaryFixed: '#00f5f5',
+  onPrimary: '#006767',
+  onPrimaryContainer: '#005d5d',
+
+  // Secondary — Magenta
+  secondary: '#ff51fa',
+  secondaryDim: '#ff51fa',
+  secondaryContainer: '#a900a9',
+  onSecondary: '#400040',
+  onSecondaryContainer: '#fff5f9',
+
+  // Tertiary — Neon Green / Lime
+  tertiary: '#f6ffc0',
+  tertiaryDim: '#d0ed00',
+  tertiaryContainer: '#daf900',
+  onTertiary: '#586500',
+
+  // Error
+  error: '#ff716c',
+  errorContainer: '#9f0519',
+
+  // Surfaces — Dark hierarchy
+  background: '#0e0e0e',
+  surface: '#0e0e0e',
+  surfaceBright: '#2c2c2c',
+  surfaceDim: '#0e0e0e',
+  surfaceContainerLowest: '#000000',
+  surfaceContainerLow: '#131313',
+  surfaceContainer: '#1a1a1a',
+  surfaceContainerHigh: '#20201f',
+  surfaceContainerHighest: '#262626',
+  surfaceVariant: '#262626',
+  surfaceTint: '#c1fffe',
+
+  // On-surface
+  onSurface: '#ffffff',
+  onSurfaceVariant: '#adaaaa',
+
+  // Outlines
+  outline: '#767575',
+  outlineVariant: '#484847',
+
+  // Inverse
+  inverseSurface: '#fcf9f8',
+  inverseOnSurface: '#565555',
+  inversePrimary: '#006a6a',
+};
+
+export const LightDesignTokens: DesignTokensType = {
+  // Primary — Teal
+  primary: '#004d4d',
+  primaryDim: '#003d3d',
+  primaryContainer: '#00cccc',
+  primaryFixed: '#00b8b8',
+  onPrimary: '#99ffff',
+  onPrimaryContainer: '#003f3f',
+
+  // Secondary — Magenta
+  secondary: '#7a007a',
+  secondaryDim: '#600060',
+  secondaryContainer: '#e680d9',
+  onSecondary: '#ffe6f8',
+  onSecondaryContainer: '#5c005c',
+
+  // Tertiary — Neon Green / Lime
+  tertiary: '#3a4a00',
+  tertiaryDim: '#2d3900',
+  tertiaryContainer: '#a0cc00',
+  onTertiary: '#c8e060',
+
+  // Error
+  error: '#8c1018',
+  errorContainer: '#d93030',
+
+  // Surfaces — Light hierarchy (kept light)
+  background: '#f6f6f6',
+  surface: '#f6f6f6',
+  surfaceBright: '#f6f6f6',
+  surfaceDim: '#c8cbcb',
   surfaceContainerLowest: '#ffffff',
-  surfaceContainerLow: '#f0efff',
-  surfaceContainer: '#e5e6ff',
-  surfaceContainerHigh: '#dee0ff',
-  surfaceContainerHighest: '#d7dbff',
-  surfaceVariant: '#d7dbff',
-  surfaceTint: '#0052d0',
-  onSurface: '#292d46',
-  onSurfaceVariant: '#565a75',
-  outline: '#717592',
-  outlineVariant: '#a8abca',
-  inverseSurface: '#080c24',
-  inverseOnSurface: '#979bba',
-  inversePrimary: '#5e8bff',
+  surfaceContainerLow: '#f0f1f1',
+  surfaceContainer: '#e7e8e8',
+  surfaceContainerHigh: '#e1e3e3',
+  surfaceContainerHighest: '#dbdddd',
+  surfaceVariant: '#dbdddd',
+  surfaceTint: '#004d4d',
+
+  // On-surface
+  onSurface: '#1a1c1c',
+  onSurfaceVariant: '#3d3f3f',
+
+  // Outlines
+  outline: '#4a4c4c',
+  outlineVariant: '#7a7c7c',
+
+  // Inverse
+  inverseSurface: '#0c0f0f',
+  inverseOnSurface: '#8a8b8b',
+  inversePrimary: '#00cccc',
+};
+
+/** @deprecated Use useTheme() hook instead for dynamic theming */
+export const DesignTokens = DarkDesignTokens;
+
+/** Font families loaded via expo-google-fonts */
+export const FontFamilies = {
+  headline: 'SpaceGrotesk_700Bold',
+  headlineBlack: 'SpaceGrotesk_700Bold',
+  body: 'Inter_400Regular',
+  bodyMedium: 'Inter_500Medium',
+  bodySemiBold: 'Inter_600SemiBold',
+  bodyBold: 'Inter_700Bold',
+  label: 'SpaceGrotesk_600SemiBold',
 };
 
 export const Colors = {
@@ -52,58 +135,58 @@ export const Colors = {
     textSecondary: DesignTokens.onSurfaceVariant,
     background: DesignTokens.background,
     surface: DesignTokens.surface,
-    tint: tintColorLight,
+    tint: DesignTokens.primaryContainer,
     icon: DesignTokens.onSurfaceVariant,
     tabIconDefault: DesignTokens.outline,
-    tabIconSelected: tintColorLight,
-    progressRingTrack: DesignTokens.surfaceContainerHigh,
-    progressRingFill: tintColorLight,
-    milestoneLocked: DesignTokens.surfaceDim,
-    milestoneUnlocked: DesignTokens.primary,
-    cardBorder: DesignTokens.outlineVariant + '1a',
+    tabIconSelected: DesignTokens.primaryContainer,
+    progressRingTrack: DesignTokens.surfaceContainerHighest,
+    progressRingFill: DesignTokens.primaryContainer,
+    milestoneLocked: DesignTokens.surfaceContainerHigh,
+    milestoneUnlocked: DesignTokens.primaryContainer,
+    cardBorder: DesignTokens.onSurface,
   },
   dark: {
-    text: '#ECEDEE',
-    textSecondary: '#9BA1A6',
-    background: '#151718',
-    surface: '#1e2022',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    progressRingTrack: '#2a2d30',
-    progressRingFill: '#3db8d9',
-    milestoneLocked: '#3a3d40',
-    milestoneUnlocked: '#3db8d9',
-    cardBorder: '#2a2d30',
+    text: '#ffffff',
+    textSecondary: '#adaaaa',
+    background: '#0e0e0e',
+    surface: '#0e0e0e',
+    tint: '#00ffff',
+    icon: '#adaaaa',
+    tabIconDefault: '#767575',
+    tabIconSelected: '#00ffff',
+    progressRingTrack: '#262626',
+    progressRingFill: '#00ffff',
+    milestoneLocked: '#20201f',
+    milestoneUnlocked: '#00ffff',
+    cardBorder: '#ffffff',
   },
 };
 
 export const MilestoneColors: Record<string, string> = {
-  'first-step': DesignTokens.primary,
+  'first-step': DesignTokens.primaryContainer,
   'explorer': DesignTokens.secondary,
-  'all-regions': DesignTokens.tertiary,
+  'all-regions': DesignTokens.tertiaryContainer,
   'halfway': DesignTokens.primaryDim,
-  'coast-to-coast': DesignTokens.secondaryDim,
-  'all-51': DesignTokens.tertiary,
+  'coast-to-coast': DesignTokens.surfaceTint,
+  'all-51': DesignTokens.secondary,
 };
 
 export const RegionColors: Record<string, string> = {
-  Northeast: DesignTokens.secondary,
-  South: DesignTokens.tertiary,
-  Midwest: DesignTokens.primary,
-  West: DesignTokens.secondaryDim,
+  West: DesignTokens.primaryContainer,
+  Midwest: DesignTokens.tertiaryContainer,
+  South: DesignTokens.secondary,
+  Northeast: DesignTokens.surfaceTint,
 };
 
 export const REGION_COLOR_PALETTE = [
+  DesignTokens.primaryContainer,
   DesignTokens.secondary,
-  DesignTokens.tertiary,
-  DesignTokens.primary,
-  DesignTokens.secondaryDim,
-  '#f59e0b',
-  '#10b981',
-  '#8b5cf6',
-  '#ec4899',
+  DesignTokens.tertiaryContainer,
+  DesignTokens.surfaceTint,
+  '#ff716c',
+  '#d0ed00',
+  '#c1fffe',
+  '#ff51fa',
 ];
 
 export function getRegionColorByIndex(index: number): string {
@@ -113,33 +196,29 @@ export function getRegionColorByIndex(index: number): string {
 export function buildRegionColorMap(regionNames: string[]): Record<string, string> {
   const map: Record<string, string> = {};
   regionNames.forEach((name, i) => {
-    map[name] = REGION_COLOR_PALETTE[i % REGION_COLOR_PALETTE.length];
+    map[name] = RegionColors[name] ?? REGION_COLOR_PALETTE[i % REGION_COLOR_PALETTE.length];
   });
   return map;
 }
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    sans: 'Inter_400Regular',
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'Inter_400Regular',
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "'Inter', system-ui, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    rounded: "system-ui, sans-serif",
+    mono: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   },
 });
 
@@ -147,18 +226,30 @@ export const Shadows = StyleSheet.create({
   light: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 0,
     elevation: 3,
   },
   mediumDownward: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 0,
     elevation: 10,
-  }
+  },
 });
+
+/** Create a brutalist offset shadow by using an absolutely-positioned View behind a card. */
+export function brutalistShadowStyle(color: string, offset = 8): ViewStyle {
+  return {
+    position: 'absolute',
+    top: offset,
+    left: offset,
+    right: -offset,
+    bottom: -offset,
+    backgroundColor: color,
+  };
+}
 
 export const CommonStyles = StyleSheet.create({
   container: {
@@ -171,20 +262,22 @@ export const CommonStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: DesignTokens.surfaceContainerLow,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: DesignTokens.onSurface,
     padding: 20,
-    ...Shadows.light,
   },
   floatingBox: {
-    backgroundColor: 'white',
+    backgroundColor: DesignTokens.surfaceContainer,
+    borderWidth: 2,
+    borderColor: DesignTokens.onSurface,
     padding: 20,
-    ...Shadows.mediumDownward,
   },
   errorText: {
-    color: 'red',
+    color: DesignTokens.error,
     fontSize: 16,
     textAlign: 'center',
     marginHorizontal: 20,
-  }
+  },
 });

@@ -2,42 +2,29 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomNav } from '@/components/BottomNav';
 import { getRegionForSubdivision } from '@/constants/countries';
-import { DesignTokens } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies, RegionColors } from '@/constants/theme';
 import { useCountry } from '@/contexts/country-context';
+import { useTheme } from '@/contexts/theme-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 
-interface RegionTheme {
-  border: string;
-  badgeBg: string;
-  badgeText: string;
-}
-
-const REGION_THEMES: RegionTheme[] = [
-  { border: '#f59e0b', badgeBg: '#fef3c7', badgeText: '#92400e' },
-  { border: DesignTokens.tertiaryContainer, badgeBg: DesignTokens.onTertiary, badgeText: DesignTokens.tertiaryDim },
-  { border: '#10b981', badgeBg: '#dcfce7', badgeText: '#065f46' },
-  { border: DesignTokens.primaryContainer, badgeBg: DesignTokens.surfaceContainerLow, badgeText: DesignTokens.primaryDim },
-  { border: '#8b5cf6', badgeBg: '#ede9fe', badgeText: '#5b21b6' },
-  { border: '#ec4899', badgeBg: '#fce7f3', badgeText: '#9d174d' },
-  { border: '#06b6d4', badgeBg: '#cffafe', badgeText: '#155e75' },
-  { border: '#f97316', badgeBg: '#fff7ed', badgeText: '#9a3412' },
-];
-
-type FilterOption = 'All States' | string;
+type FilterOption = 'All' | string;
 
 export default function TimelineScreen() {
   const router = useRouter();
   const { country } = useCountry();
   const { entries } = useVisitedStatesContext();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => {
       const dateA = a.photoDate ?? a.addedAt;
@@ -48,13 +35,6 @@ export default function TimelineScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
 
   const regions = country.regions;
-
-  // Build region index map for theming
-  const regionIndexMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    regions.forEach((r, i) => { map[r.name] = i; });
-    return map;
-  }, [regions]);
 
   const filters = useMemo(() => {
     const regionSet = new Set<string>();
@@ -76,35 +56,44 @@ export default function TimelineScreen() {
   if (sortedEntries.length === 0) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
-          <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
+        <View style={styles.header}>
+          <Text style={styles.headerBrand}>STATEDEX</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBox}>
             <MaterialCommunityIcons
               name="map-outline"
               size={40}
-              color={DesignTokens.primary}
+              color={tokens.primaryContainer}
             />
           </View>
-          <Text style={styles.emptyTitle}>No travels logged yet.</Text>
+          <Text style={styles.emptyTitle}>NO TRAVELS LOGGED YET.</Text>
           <Text style={styles.emptySubtitle}>
             Tap the map to start your journey and build your ledger!
           </Text>
-          <TouchableOpacity
-            style={styles.emptyCta}
-            onPress={() => router.push('/map')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.emptyCtaText}>Open Voyager Map</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyCtaWrapper}>
+            <View style={styles.emptyCtaShadow} />
+            <TouchableOpacity
+              style={styles.emptyCta}
+              onPress={() => router.push('/map')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.emptyCtaText}>OPEN VOYAGER MAP</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        {/* Bottom Nav */}
-        <BottomNav router={router} />
+        <BottomNav activeTab="journal" />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Brutalist Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerBrand}>STATEDEX</Text>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -112,8 +101,8 @@ export default function TimelineScreen() {
       >
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Text style={styles.headerLabel}>Chronicle of Voyages</Text>
-          <Text style={styles.headerTitle}>The Journal</Text>
+          <Text style={styles.headerLabel}>CHRONICLE OF VOYAGES</Text>
+          <Text style={styles.headerTitle}>THE JOURNAL</Text>
           {/* Filter Chips */}
           <ScrollView
             horizontal
@@ -141,7 +130,7 @@ export default function TimelineScreen() {
                       : styles.filterChipTextInactive,
                   ]}
                 >
-                  {filter}
+                  {filter.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -156,12 +145,7 @@ export default function TimelineScreen() {
           {filteredEntries.map((entry, index) => {
             const region = getRegionForSubdivision(entry.stateName, regions);
             const regionName = region?.name ?? 'Unknown';
-            const rIdx = regionIndexMap[regionName] ?? 0;
-            const theme = REGION_THEMES[rIdx % REGION_THEMES.length];
-            const borderColor = theme.border;
-            const badgeBg = theme.badgeBg;
-            const badgeText = theme.badgeText;
-            const regionIcon = region?.icon ?? 'map-marker';
+            const borderColor = RegionColors[regionName] ?? tokens.primaryContainer;
             const displayDate = new Date(entry.photoDate ?? entry.addedAt);
             const isLegacy = !entry.photoDate && displayDate.getTime() === 0;
             const isFirst = index === 0;
@@ -172,9 +156,7 @@ export default function TimelineScreen() {
                 <View
                   style={[
                     styles.timelineNode,
-                    isFirst
-                      ? styles.timelineNodeActive
-                      : styles.timelineNodeInactive,
+                    { backgroundColor: isFirst ? tokens.primaryContainer : tokens.surfaceContainerHighest },
                   ]}
                 />
                 {/* Date */}
@@ -198,11 +180,11 @@ export default function TimelineScreen() {
                       <View
                         style={[
                           styles.regionBadge,
-                          { backgroundColor: badgeBg },
+                          { borderColor: borderColor },
                         ]}
                       >
                         <Text
-                          style={[styles.regionBadgeText, { color: badgeText }]}
+                          style={[styles.regionBadgeText, { color: borderColor }]}
                         >
                           {regionName}
                         </Text>
@@ -210,9 +192,9 @@ export default function TimelineScreen() {
                       <Text style={styles.stateName}>{entry.stateName}</Text>
                     </View>
                     <MaterialCommunityIcons
-                      name={regionIcon as any}
+                      name={(region?.icon as any) ?? 'map-marker'}
                       size={24}
-                      color={DesignTokens.surfaceDim}
+                      color={tokens.outline}
                     />
                   </View>
                 </View>
@@ -225,63 +207,34 @@ export default function TimelineScreen() {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <BottomNav router={router} />
+      <BottomNav activeTab="journal" />
     </SafeAreaView>
   );
 }
 
-function BottomNav({ router }: { router: ReturnType<typeof useRouter> }) {
-  return (
-    <View style={styles.bottomNav}>
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={() => router.push('/')}
-      >
-        <MaterialCommunityIcons
-          name="home-outline"
-          size={24}
-          color={DesignTokens.outline}
-        />
-        <Text style={styles.navLabel}>Archive</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={() => router.push('/map')}
-      >
-        <MaterialCommunityIcons
-          name="map-outline"
-          size={24}
-          color={DesignTokens.outline}
-        />
-        <Text style={styles.navLabel}>Explorer</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-        <MaterialCommunityIcons
-          name="timeline-text"
-          size={24}
-          color={DesignTokens.primary}
-        />
-        <Text style={[styles.navLabel, styles.navLabelActive]}>Journal</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={() => router.push('/settings')}
-      >
-        <MaterialCommunityIcons
-          name="cog-outline"
-          size={24}
-          color={DesignTokens.outline}
-        />
-        <Text style={styles.navLabel}>Settings</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: DesignTokens.background,
+    backgroundColor: t.background,
+  },
+
+  /* Header bar */
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: t.background,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    alignItems: 'center',
+  },
+  headerBrand: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 22,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    fontStyle: 'italic',
   },
 
   /* Scroll */
@@ -290,24 +243,28 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
+    paddingTop: 32,
   },
   /* Header */
   headerSection: {
     marginBottom: 36,
   },
   headerLabel: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 3,
-    color: DesignTokens.primary,
+    color: t.primaryContainer,
     marginBottom: 6,
   },
   headerTitle: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 36,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
+    fontWeight: '900',
+    color: t.onSurface,
     letterSpacing: -1,
+    textTransform: 'uppercase',
   },
   /* Filters */
   filterScroll: {
@@ -320,23 +277,27 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderWidth: 2,
   },
   filterChipActive: {
-    backgroundColor: DesignTokens.primary,
+    backgroundColor: t.primaryContainer,
+    borderColor: t.primaryContainer,
   },
   filterChipInactive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
+    backgroundColor: 'transparent',
+    borderColor: t.outlineVariant,
   },
   filterChipText: {
+    fontFamily: FontFamilies.label,
     fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 1,
   },
   filterChipTextActive: {
-    color: DesignTokens.onPrimary,
+    color: t.surfaceContainerLowest,
   },
   filterChipTextInactive: {
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
   },
   /* Timeline */
   timeline: {
@@ -349,7 +310,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: DesignTokens.outlineVariant + '33',
+    backgroundColor: t.outlineVariant,
   },
   entryContainer: {
     paddingLeft: 36,
@@ -357,54 +318,32 @@ const styles = StyleSheet.create({
   },
   timelineNode: {
     position: 'absolute',
-    left: 11,
-    top: 6,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    left: 8,
+    top: 3,
+    width: 18,
+    height: 18,
+    borderWidth: 4,
+    borderColor: t.background,
     zIndex: 10,
-  },
-  timelineNodeActive: {
-    backgroundColor: DesignTokens.primary,
-    borderWidth: 4,
-    borderColor: DesignTokens.background,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    left: 8,
-    top: 3,
-  },
-  timelineNodeInactive: {
-    backgroundColor: DesignTokens.surfaceDim,
-    borderWidth: 4,
-    borderColor: DesignTokens.background,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    left: 8,
-    top: 3,
   },
   dateRow: {
     marginBottom: 12,
   },
   dateText: {
+    fontFamily: FontFamilies.label,
     fontSize: 11,
     fontWeight: '700',
-    color: DesignTokens.outline,
+    color: t.outline,
     textTransform: 'uppercase',
     letterSpacing: 2,
   },
   /* Entry Card */
   entryCard: {
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    borderRadius: 24,
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 2,
+    borderColor: t.onSurface,
     padding: 24,
     borderLeftWidth: 8,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 24,
-    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -414,20 +353,24 @@ const styles = StyleSheet.create({
   regionBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderWidth: 2,
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
   regionBadgeText: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   stateName: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 24,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+    fontWeight: '900',
+    color: t.onSurface,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
   },
   /* Empty State */
   emptyContainer: {
@@ -436,82 +379,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 40,
   },
-  emptyIconCircle: {
+  emptyIconBox: {
     width: 96,
     height: 96,
-    borderRadius: 48,
-    backgroundColor: DesignTokens.surfaceContainerLow,
+    borderWidth: 4,
+    borderColor: t.onSurface,
+    backgroundColor: t.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   emptyTitle: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 20,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+    fontWeight: '900',
+    color: t.onSurface,
     marginBottom: 8,
     textAlign: 'center',
+    textTransform: 'uppercase',
   },
   emptySubtitle: {
+    fontFamily: FontFamilies.body,
     fontSize: 14,
-    color: DesignTokens.onSurfaceVariant,
+    color: t.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 22,
   },
-  emptyCta: {
+  emptyCtaWrapper: {
+    position: 'relative',
     marginTop: 32,
-    backgroundColor: DesignTokens.primary,
+  },
+  emptyCtaShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: t.secondary,
+  },
+  emptyCta: {
+    backgroundColor: t.primaryContainer,
+    borderWidth: 2,
+    borderColor: t.onSurface,
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4,
+    position: 'relative',
+    zIndex: 1,
   },
   emptyCtaText: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 14,
     fontWeight: '700',
-    color: DesignTokens.onPrimary,
-    letterSpacing: 0.5,
-  },
-  /* Bottom Nav */
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  navItemActive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
-  },
-  navLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    color: t.surfaceContainerLowest,
+    letterSpacing: 2,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 4,
-    color: DesignTokens.outline,
-  },
-  navLabelActive: {
-    color: DesignTokens.primary,
   },
 });

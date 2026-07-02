@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,19 +23,21 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import statesData from '@/assets/us-states.json';
+import { BottomNav } from '@/components/BottomNav';
 import { ConfettiOverlay } from '@/components/ConfettiOverlay';
 import { MapLegend } from '@/components/MapLegend';
 import { MilestoneUnlockModal } from '@/components/MilestoneUnlockModal';
 import { getRegionForSubdivision, getRegionProgress } from '@/constants/countries';
-import { DesignTokens, buildRegionColorMap } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies, buildRegionColorMap } from '@/constants/theme';
 import { useCountry } from '@/contexts/country-context';
+import { useTheme } from '@/contexts/theme-context';
 import { useVisitedStatesContext } from '@/contexts/visited-states-context';
 import { getNewlyUnlockedMilestones, useMilestones } from '@/hooks/use-milestones';
 import { extractDateFromExif, extractGpsFromExif, reverseGeocodeToState } from '@/utils/image-geo-extractor';
 import { fourColorAlgorithm } from '@/utils/map-coloring';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.25;
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.22;
 
 const UNVISITED_FILL = 'rgba(180, 180, 190, 0.15)';
 const UNVISITED_STROKE = 'rgba(150, 150, 160, 0.4)';
@@ -49,16 +51,18 @@ function getRegionInfo(
   stateName: string,
   regions: ReturnType<typeof useCountry>['country']['regions'],
   regionColors: Record<string, string>,
+  fallbackColor: string,
 ): { color: string; name: string | undefined } {
   const regionName = getRegionForSubdivision(stateName, regions)?.name;
-  const color = regionName ? (regionColors[regionName] ?? DesignTokens.primary) : DesignTokens.primary;
+  const color = regionName ? (regionColors[regionName] ?? fallbackColor) : fallbackColor;
   return { color, name: regionName };
 }
 
 export default function MapScreen() {
-  const router = useRouter();
   const { country } = useCountry();
   const { visitedStates, entries, isLoading, addState, clearStates } = useVisitedStatesContext();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const [processing, setProcessing] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [milestoneModal, setMilestoneModal] = useState<{
@@ -69,7 +73,6 @@ export default function MapScreen() {
   } | null>(null);
   const regionRef = useRef<Region>(country.initialMapRegion);
   const mapRef = useRef<MapView>(null);
-  const lastExplorerTapRef = useRef<number>(0);
   const params = useLocalSearchParams<{ region?: string }>();
   const milestones = useMilestones(visitedStates);
 
@@ -176,7 +179,6 @@ export default function MapScreen() {
 
         addState(stateName, photoDate ?? undefined);
 
-        // Celebration! 🎉
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowConfetti(true);
         badgeScale.value = withSpring(1.3, { damping: 8 }, () => {
@@ -194,8 +196,6 @@ export default function MapScreen() {
         if (newMilestones.length > 0) {
           const unlockedId = newMilestones[0];
           const milestone = milestones.find((m) => m.id === unlockedId) ??
-            // The milestone may not yet reflect the new state in the memo,
-            // so fall back to a simple lookup
             getMilestoneInfo(unlockedId);
           if (milestone) {
             setTimeout(() => {
@@ -232,19 +232,23 @@ export default function MapScreen() {
   const percentage = totalStates > 0 ? Math.round((visitedStates.size / totalStates) * 100) : 0;
 
   const recentEntries = [...(entries ?? [])].reverse().slice(0, 4);
+  const lastEntry = recentEntries[0];
 
-  const navItems = [
-    { icon: 'home-outline' as const, label: 'Archive', route: '/' as const, active: false },
-    { icon: 'map' as const, label: 'Explorer', route: undefined, active: true },
-    { icon: 'timeline-text-outline' as const, label: 'Journal', route: '/timeline' as const, active: false },
-    { icon: 'cog-outline' as const, label: 'Settings', route: '/settings' as const, active: false },
-  ];
+  // Find a recommended next target (first unvisited state from a region with least progress)
+  const nextTarget = useMemo(() => {
+    for (const region of regions) {
+      for (const state of region.states) {
+        if (!visitedStates.has(state)) return { state, region: region.name };
+      }
+    }
+    return null;
+  }, [visitedStates, regions]);
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={DesignTokens.primary} />
+          <ActivityIndicator size="large" color={tokens.primaryContainer} />
         </View>
       </SafeAreaView>
     );
@@ -252,48 +256,51 @@ export default function MapScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {/* Brutalist Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerBrand}>STATEDEX</Text>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Explorer Header & Controls */}
-        <View style={styles.headerSection}>
-          <View>
-            <Text style={styles.headerLabel}>Explorer Mode</Text>
-            <Text style={styles.headerTitle}>{country.flag} {country.name}</Text>
-          </View>
-          <View style={styles.headerControls}>
-            <View style={styles.regionChips}>
-              {regions.map((r) => (
-                <TouchableOpacity
-                  key={r.shortName}
-                  style={styles.regionChip}
-                  onPress={() => handleRegionZoom(r.name)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.regionChipText}>{r.shortName}</Text>
-                </TouchableOpacity>
-              ))}
+        {/* Hero Progress Display */}
+        <View style={styles.heroWrapper}>
+          {/* Offset shadow */}
+          <View style={styles.heroShadow} />
+          <View style={styles.heroCard}>
+            <View style={styles.heroLeft}>
+              <Text style={styles.heroLabel}>TOTAL PENETRATION</Text>
+              <Animated.View style={[styles.heroCountRow, badgeStyle]}>
+                <Text style={styles.heroCount}>{visitedStates.size}</Text>
+                <Text style={styles.heroTotal}>/{totalStates}</Text>
+              </Animated.View>
             </View>
-            {visitedStates.size > 0 && (
-              <TouchableOpacity
-                style={styles.clearAllButton}
-                onPress={() =>
-                  Alert.alert('Clear All', `Remove all visited ${country.subdivisionLabelPlural.toLowerCase()}?`, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Clear', style: 'destructive', onPress: clearStates },
-                  ])
-                }
-              >
-                <MaterialCommunityIcons name="restart" size={14} color={DesignTokens.onSurfaceVariant} />
-                <Text style={styles.clearAllText}>Clear All</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.heroRight}>
+              <Text style={styles.heroDescription}>
+                Current trajectory puts you at {percentage}% completion of the continental grid. Continue aggressive expansion.
+              </Text>
+              {/* Log Entry Button */}
+              <View style={styles.logButtonWrapper}>
+                <View style={styles.logButtonShadow} />
+                <TouchableOpacity
+                  style={styles.logButton}
+                  onPress={handlePickImage}
+                  activeOpacity={0.8}
+                  disabled={processing}
+                >
+                  <Text style={styles.logButtonText}>
+                    {processing ? 'PROCESSING...' : 'LOG ENTRY'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Map Container (25% height) */}
+        {/* Map Section */}
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
@@ -310,105 +317,110 @@ export default function MapScreen() {
 
           {/* Floating Stats Badge */}
           <Animated.View style={[styles.statsBadge, badgeStyle]}>
-            <View style={styles.statsBadgeRing}>
-              <Text style={styles.statsBadgeCount}>{visitedStates.size}</Text>
-            </View>
-            <View>
-              <Text style={styles.statsBadgeLabel}>{country.subdivisionLabelPlural} Visited</Text>
-              <Text style={styles.statsBadgeValue}>
-                {visitedStates.size} / {totalStates}{' '}
-                <Text style={styles.statsBadgePercent}>({percentage}%)</Text>
-              </Text>
-            </View>
+            <Text style={styles.statsBadgeCount}>{visitedStates.size}</Text>
+            <Text style={styles.statsBadgeLabel}>/{totalStates}</Text>
           </Animated.View>
 
-          {/* Map Legend */}
+          {/* Region chips on map */}
+          <View style={styles.mapChips}>
+            {regions.map((r) => (
+              <TouchableOpacity
+                key={r.shortName}
+                style={styles.mapChip}
+                onPress={() => handleRegionZoom(r.name)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.mapChipText}>{r.shortName}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <MapLegend />
         </View>
 
-        {/* Details Grid */}
-        <View style={styles.detailsGrid}>
-          {/* Recent Expeditions */}
-          <View style={styles.recentSection}>
-            <View style={styles.recentHeader}>
-              <Text style={styles.sectionTitle}>Recent Expeditions</Text>
-              <TouchableOpacity
-                style={styles.viewJournalButton}
-                onPress={() => router.push('/timeline' as any)}
-              >
-                <Text style={styles.viewJournalText}>View Journal</Text>
-                <MaterialCommunityIcons name="arrow-right" size={14} color={DesignTokens.primary} />
-              </TouchableOpacity>
+        {/* Sector Status — Regional Progress */}
+        <View style={styles.sectorSection}>
+          <View style={styles.sectionTitleWrapper}>
+            <View style={styles.sectionTitleShadow} />
+            <View style={styles.sectionTitleBox}>
+              <Text style={styles.sectionTitle}>SECTOR STATUS</Text>
             </View>
-            {recentEntries.length > 0 ? (
-              <View style={styles.expeditionCards}>
-                {recentEntries.map((entry, i) => {
-                  const addedDate = new Date(entry.addedAt);
-                  const isLegacy = addedDate.getTime() === 0;
-                  const { color: regionColor, name: regionName } = getRegionInfo(entry.stateName, regions, regionColors);
-                  return (
-                    <View key={entry.stateName + i} style={styles.expeditionCard}>
-                      <View style={[styles.expeditionIcon, { backgroundColor: regionColor + '20' }]}>
-                        <MaterialCommunityIcons
-                          name="map-marker-check"
-                          size={22}
-                          color={regionColor}
-                        />
-                      </View>
-                      <View style={styles.expeditionInfo}>
-                        <Text style={styles.expeditionState}>{entry.stateName}</Text>
-                        <Text style={styles.expeditionMeta}>
-                          {isLegacy ? 'Legacy entry' : formatRelativeDate(addedDate)}
-                          {regionName ? ` • ${regionName}` : ''}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptyExpeditions}>
-                <MaterialCommunityIcons name="compass-off-outline" size={32} color={DesignTokens.outlineVariant} />
-                <Text style={styles.emptyText}>No expeditions yet</Text>
-                <Text style={styles.emptySubtext}>Upload a geotagged photo to get started</Text>
-              </View>
-            )}
           </View>
 
-          {/* Regional Focus */}
-          <View style={styles.regionalSection}>
-            <Text style={styles.sectionTitle}>Regional Focus</Text>
-            <View style={styles.regionalBars}>
-              {regions.map((region) => {
-                const { visited, total } = getRegionProgress(region, visitedStates);
-                const pct = total > 0 ? Math.round((visited / total) * 100) : 0;
-                const regionColor = regionColors[region.name] ?? DesignTokens.primary;
-                return (
-                  <View key={region.name} style={styles.regionalItem}>
-                    <View style={styles.regionalLabelRow}>
-                      <Text style={styles.regionalLabel}>{region.name}</Text>
-                      <Text style={styles.regionalPercent}>{pct}%</Text>
-                    </View>
-                    <View style={styles.progressBarBg}>
-                      <View
-                        style={[
-                          styles.progressBarFill,
-                          { width: `${pct}%`, backgroundColor: pct > 0 ? regionColor : DesignTokens.outlineVariant + '30' },
-                        ]}
-                      />
+          <View style={styles.sectorGrid}>
+            {regions.map((region) => {
+              const { visited, total } = getRegionProgress(region, visitedStates);
+              const pct = total > 0 ? Math.round((visited / total) * 100) : 0;
+              const regionColor = regionColors[region.name] ?? tokens.primaryContainer;
+              return (
+                <View key={region.name} style={styles.sectorItem}>
+                  <View style={styles.sectorLabelRow}>
+                    <Text style={styles.sectorLabel}>{region.name}</Text>
+                    <Text style={[styles.sectorCount, { color: regionColor }]}>
+                      {visited}/{total}
+                    </Text>
+                  </View>
+                  <View style={styles.sectorBarOuter}>
+                    <View
+                      style={[
+                        styles.sectorBarFill,
+                        { width: `${pct}%`, backgroundColor: regionColor },
+                      ]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Kinetic Milestone Cards */}
+        <View style={styles.milestoneGrid}>
+          {/* Target Card */}
+          {nextTarget && (
+            <View style={styles.targetCardWrapper}>
+              <View style={styles.targetCardShadow} />
+              <View style={styles.targetCard}>
+                {/* Priority ribbon */}
+                <View style={styles.priorityRibbon}>
+                  <Text style={styles.priorityRibbonText}>PRIORITY</Text>
+                </View>
+                <View style={styles.targetCardIcon}>
+                  <MaterialCommunityIcons name="map-marker-radius" size={48} color={tokens.primaryContainer} />
+                </View>
+                <View style={styles.targetCardContent}>
+                  <Text style={styles.targetCardTitle}>{nextTarget.state}</Text>
+                  <Text style={styles.targetCardDesc}>
+                    Recommended next target based on proximity to active vector.
+                  </Text>
+                  <View style={styles.targetTags}>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>{nextTarget.region}</Text>
                     </View>
                   </View>
-                );
-              })}
+                </View>
+              </View>
             </View>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={handlePickImage}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.exploreButtonText}>Explore Unvisited</Text>
-            </TouchableOpacity>
-          </View>
+          )}
+
+          {/* Last Acquired Card */}
+          {lastEntry && (
+            <View style={styles.lastCardWrapper}>
+              <View style={styles.lastCardShadow} />
+              <View style={styles.lastCard}>
+                <View style={styles.lastCardIcon}>
+                  <MaterialCommunityIcons name="map-marker-check" size={48} color={tokens.secondary} />
+                </View>
+                <View style={styles.lastCardContent}>
+                  <Text style={styles.lastCardLabel}>LAST ACQUIRED</Text>
+                  <Text style={styles.lastCardState}>{lastEntry.stateName}</Text>
+                  <Text style={styles.lastCardDate}>
+                    LOG_DATE: {new Date(lastEntry.addedAt).toISOString().slice(0, 10).replace(/-/g, '.')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
@@ -430,37 +442,13 @@ export default function MapScreen() {
       />
 
       {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        {navItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[styles.navItem, item.active && styles.navItemActive]}
-            onPress={
-              item.active
-                ? () => {
-                    const now = Date.now();
-                    if (now - lastExplorerTapRef.current < 400) {
-                      mapRef.current?.animateToRegion(country.initialMapRegion, 600);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    }
-                    lastExplorerTapRef.current = now;
-                  }
-                : item.route
-                  ? () => router.push(item.route!)
-                  : undefined
-            }
-          >
-            <MaterialCommunityIcons
-              name={item.icon}
-              size={24}
-              color={item.active ? DesignTokens.primary : DesignTokens.outline}
-            />
-            <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <BottomNav
+        activeTab="explorer"
+        onDoubleTapExplorer={() => {
+          mapRef.current?.animateToRegion(country.initialMapRegion, 600);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -477,328 +465,425 @@ function getMilestoneInfo(id: string) {
   return map[id] ?? null;
 }
 
-function formatRelativeDate(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
-}
-
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: DesignTokens.background,
+    backgroundColor: t.background,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  /* Scroll */
+
+  /* ── Header ── */
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: t.background,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    alignItems: 'center',
+  },
+  headerBrand: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 22,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    fontStyle: 'italic',
+  },
+
+  /* ── Scroll ── */
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    gap: 64,
+    paddingBottom: 32,
+  },
+
+  /* ── Hero Progress ── */
+  heroWrapper: {
+    position: 'relative',
+  },
+  heroShadow: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: -8,
+    bottom: -8,
+    backgroundColor: t.tertiaryContainer,
+  },
+  heroCard: {
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 4,
+    borderColor: t.onSurface,
+    padding: 32,
+    flexDirection: 'column',
     gap: 24,
+    position: 'relative',
+    zIndex: 1,
+    transform: [{ rotate: '-1deg' }],
   },
-  /* Header Section */
-  headerSection: {
-    gap: 12,
-    paddingHorizontal: 8,
+  heroLeft: {
+    borderLeftWidth: 4,
+    borderLeftColor: t.primaryContainer,
+    paddingLeft: 24,
   },
-  headerLabel: {
-    fontSize: 10,
-    fontWeight: '800',
+  heroLabel: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 3,
+    color: t.onSurface,
     textTransform: 'uppercase',
-    letterSpacing: 2,
-    color: DesignTokens.primary,
+    marginBottom: 8,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
-    letterSpacing: -0.5,
-  },
-  headerControls: {
+  heroCountRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  regionChips: {
-    flexDirection: 'row',
-    backgroundColor: DesignTokens.surfaceContainerLow,
-    borderRadius: 16,
-    padding: 4,
+    alignItems: 'baseline',
     gap: 4,
   },
-  regionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+  heroCount: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 80,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    letterSpacing: -4,
+    lineHeight: 80,
   },
-  regionChipText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
+  heroTotal: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 40,
+    fontWeight: '700',
+    color: t.onSurfaceVariant,
+    letterSpacing: -2,
   },
-  clearAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  heroRight: {
+    gap: 16,
   },
-  clearAllText: {
-    fontSize: 10,
-    fontWeight: '800',
+  heroDescription: {
+    fontFamily: FontFamilies.body,
+    fontSize: 14,
+    color: t.onSurfaceVariant,
+    lineHeight: 22,
+    borderBottomWidth: 2,
+    borderBottomColor: t.outlineVariant,
+    paddingBottom: 16,
+  },
+  logButtonWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  logButtonShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: t.secondary,
+  },
+  logButton: {
+    backgroundColor: t.primaryContainer,
+    borderWidth: 2,
+    borderColor: t.onSurface,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    position: 'relative',
+    zIndex: 1,
+  },
+  logButtonText: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 14,
+    fontWeight: '700',
+    color: t.surfaceContainerLowest,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    color: DesignTokens.onSurfaceVariant,
+    letterSpacing: 3,
   },
-  /* Map Container */
+
+  /* ── Map Container ── */
   mapContainer: {
     height: MAP_HEIGHT,
-    borderRadius: 28,
+    borderWidth: 4,
+    borderColor: t.onSurface,
     overflow: 'hidden',
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 24 },
-    shadowOpacity: 0.08,
-    shadowRadius: 48,
-    elevation: 6,
+    backgroundColor: t.surfaceContainerLowest,
+    position: 'relative',
   },
   map: {
     flex: 1,
     width: '100%',
   },
-  /* Stats Badge */
   statsBadge: {
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: t.surfaceContainerLowest,
+    borderWidth: 2,
+    borderColor: t.onSurface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statsBadgeRing: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: DesignTokens.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'baseline',
+    gap: 2,
   },
   statsBadgeCount: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: DesignTokens.primary,
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 18,
+    fontWeight: '900',
+    color: t.primaryContainer,
   },
   statsBadgeLabel: {
-    fontSize: 8,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    color: DesignTokens.onSurfaceVariant,
-  },
-  statsBadgeValue: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 12,
     fontWeight: '700',
-    color: DesignTokens.onSurface,
+    color: t.onSurfaceVariant,
   },
-  statsBadgePercent: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: DesignTokens.outline,
-  },
-  /* Details Grid */
-  detailsGrid: {
-    gap: 16,
-  },
-  /* Recent Expeditions */
-  recentSection: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
-    borderRadius: 28,
-    padding: 24,
-  },
-  recentHeader: {
+  mapChips: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
-  },
-  viewJournalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 4,
   },
-  viewJournalText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: DesignTokens.primary,
+  mapChip: {
+    backgroundColor: t.surfaceContainerLowest,
+    borderWidth: 2,
+    borderColor: t.onSurface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  expeditionCards: {
-    gap: 12,
+  mapChipText: {
+    fontFamily: FontFamilies.label,
+    fontSize: 10,
+    fontWeight: '800',
+    color: t.onSurface,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  expeditionCard: {
-    backgroundColor: DesignTokens.surfaceContainerLowest,
-    borderRadius: 20,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+
+  /* ── Sector Status ── */
+  sectorSection: {
+    gap: 32,
   },
-  expeditionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  sectionTitleWrapper: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+    marginLeft: -4,
   },
-  expeditionInfo: {
-    flex: 1,
+  sectionTitleShadow: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: -4,
+    bottom: -4,
+    backgroundColor: t.secondary,
   },
-  expeditionState: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: DesignTokens.onSurface,
+  sectionTitleBox: {
+    backgroundColor: t.background,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    position: 'relative',
+    zIndex: 1,
   },
-  expeditionMeta: {
-    fontSize: 11,
-    color: DesignTokens.onSurfaceVariant,
-    marginTop: 2,
+  sectionTitle: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 24,
+    fontWeight: '900',
+    color: t.onSurface,
+    textTransform: 'uppercase',
+    letterSpacing: -1,
   },
-  emptyExpeditions: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  sectorGrid: {
+    gap: 24,
+  },
+  sectorItem: {
     gap: 8,
   },
-  emptyText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: DesignTokens.onSurfaceVariant,
-  },
-  emptySubtext: {
-    fontSize: 12,
-    color: DesignTokens.outline,
-  },
-  /* Regional Focus */
-  regionalSection: {
-    backgroundColor: DesignTokens.surfaceContainerHighest + '30',
-    borderRadius: 28,
-    padding: 24,
-  },
-  regionalBars: {
-    gap: 20,
-    marginTop: 20,
-  },
-  regionalItem: {
-    gap: 6,
-  },
-  regionalLabelRow: {
+  sectorLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  regionalLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    color: DesignTokens.onSurfaceVariant,
-  },
-  regionalPercent: {
+  sectorLabel: {
+    fontFamily: FontFamilies.label,
     fontSize: 12,
-    fontWeight: '800',
-    color: DesignTokens.onSurface,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: DesignTokens.surfaceContainerHigh,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  exploreButton: {
-    marginTop: 24,
-    backgroundColor: DesignTokens.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  exploreButtonText: {
-    fontSize: 14,
     fontWeight: '700',
-    color: DesignTokens.onPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+    color: t.onSurface,
   },
-  /* Bottom Nav */
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: DesignTokens.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 10,
+  sectorCount: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 18,
+    fontWeight: '900',
   },
-  navItem: {
+  sectorBarOuter: {
+    height: 32,
+    borderWidth: 2,
+    borderColor: t.onSurface,
+    backgroundColor: t.surfaceContainerHighest,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  sectorBarFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+  },
+
+  /* ── Milestone Cards ── */
+  milestoneGrid: {
+    gap: 48,
+  },
+  /* Target Card */
+  targetCardWrapper: {
+    position: 'relative',
+  },
+  targetCardShadow: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: -8,
+    bottom: -8,
+    backgroundColor: t.primaryContainer,
+  },
+  targetCard: {
+    backgroundColor: t.surface,
+    borderWidth: 4,
+    borderColor: t.onSurface,
+    overflow: 'hidden',
+    position: 'relative',
+    zIndex: 1,
+  },
+  priorityRibbon: {
+    position: 'absolute',
+    top: 16,
+    left: -32,
+    backgroundColor: t.onSurface,
+    paddingVertical: 4,
+    paddingHorizontal: 48,
+    transform: [{ rotate: '-45deg' }],
+    zIndex: 20,
+  },
+  priorityRibbonText: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+    color: t.surface,
+    textTransform: 'uppercase',
+  },
+  targetCardIcon: {
+    height: 120,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    backgroundColor: t.surfaceContainerLowest,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
   },
-  navItemActive: {
-    backgroundColor: DesignTokens.surfaceContainerLow,
+  targetCardContent: {
+    padding: 24,
+    gap: 12,
   },
-  navLabel: {
+  targetCardTitle: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 28,
+    fontWeight: '900',
+    color: t.primaryContainer,
+    textTransform: 'uppercase',
+    letterSpacing: -1,
+  },
+  targetCardDesc: {
+    fontFamily: FontFamilies.body,
+    fontSize: 14,
+    color: t.onSurfaceVariant,
+  },
+  targetTags: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  tag: {
+    borderWidth: 2,
+    borderColor: t.outline,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  tagText: {
+    fontFamily: FontFamilies.label,
     fontSize: 10,
     fontWeight: '700',
+    color: t.onSurface,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginTop: 4,
-    color: DesignTokens.outline,
   },
-  navLabelActive: {
-    color: DesignTokens.primary,
+  /* Last Acquired Card */
+  lastCardWrapper: {
+    position: 'relative',
+  },
+  lastCardShadow: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: -8,
+    bottom: -8,
+    backgroundColor: t.secondary,
+  },
+  lastCard: {
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 4,
+    borderColor: t.onSurface,
+    overflow: 'hidden',
+    position: 'relative',
+    zIndex: 1,
+  },
+  lastCardIcon: {
+    height: 120,
+    borderBottomWidth: 4,
+    borderBottomColor: t.onSurface,
+    backgroundColor: t.surfaceContainerLowest,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lastCardContent: {
+    padding: 24,
+    gap: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: t.secondary,
+    marginLeft: 16,
+    marginRight: 16,
+    marginVertical: 16,
+    borderWidth: 4,
+    borderColor: t.onSurface,
+    backgroundColor: t.surface,
+  },
+  lastCardLabel: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 18,
+    fontWeight: '900',
+    color: t.onSurface,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+  },
+  lastCardState: {
+    fontFamily: FontFamilies.headlineBlack,
+    fontSize: 20,
+    fontWeight: '700',
+    color: t.secondary,
+    textTransform: 'uppercase',
+  },
+  lastCardDate: {
+    fontFamily: FontFamilies.body,
+    fontSize: 11,
+    color: t.onSurfaceVariant,
+    letterSpacing: 1,
   },
 });

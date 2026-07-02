@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
     runOnJS,
@@ -9,7 +9,8 @@ import Animated, {
     withTiming
 } from 'react-native-reanimated';
 
-import { MilestoneColors } from '@/constants/theme';
+import { type DesignTokensType, FontFamilies, MilestoneColors } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 
 interface MilestoneUnlockModalProps {
   milestoneId: string | null;
@@ -26,6 +27,8 @@ export function MilestoneUnlockModal({
   description,
   onDismiss,
 }: MilestoneUnlockModalProps) {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -80,27 +83,21 @@ export function MilestoneUnlockModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: DesignTokensType) => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    borderWidth: 3,
+    backgroundColor: t.surfaceContainerLow,
+    borderWidth: 4,
     padding: 32,
     alignItems: 'center',
     width: '75%',
     maxWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 12,
   },
   unlockLabelRow: {
     flexDirection: 'row',
@@ -108,21 +105,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   unlockLabel: {
+    fontFamily: FontFamilies.label,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '700',
+    color: t.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
   iconSpacing: {
     marginBottom: 12,
   },
   title: {
+    fontFamily: FontFamilies.headlineBlack,
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '900',
     marginBottom: 6,
+    textTransform: 'uppercase',
   },
   description: {
+    fontFamily: FontFamilies.body,
     fontSize: 14,
-    color: '#888',
+    color: t.onSurfaceVariant,
     textAlign: 'center',
   },
 });
